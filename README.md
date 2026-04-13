@@ -4,6 +4,10 @@ Xkaliber Agent is a specialized Linux desktop application that transforms local 
 
 (THIS ONLY SUPPORTS OLLAMA)
 
+(you dont need api for web access and surfing)
+
+(works out the box just download ur favorite llm from ollama)
+
 🚀 Core Features
 ⚡ 1. Autonomous Agent Mode (System Harness)
 Toggle the Sys-Access harness to give your AI "True Agency." The model operates in a continuous loop, autonomously selecting tools to fulfill complex requests:
