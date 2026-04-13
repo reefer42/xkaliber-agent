@@ -34,3 +34,5 @@ A built-in QR link allows the agent to communicate externally. Have the AI send 
 Vision: Support for models like LLaVA and Llama 3.2 Vision for native image analysis.
 
 File Attachments: Drop local text files or images directly into the chat to provide immediate context for the agent's next task.
+
+<img width="1920" height="1200" alt="agent" src="https://github.com/user-attachments/assets/f6705305-7a1a-4ceb-bd4f-3f657a860400" />
