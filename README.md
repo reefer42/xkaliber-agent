@@ -37,4 +37,4 @@ File Attachments: Drop local text files or images directly into the chat to prov
 
 <img width="1920" height="1200" alt="agent" src="https://github.com/user-attachments/assets/f6705305-7a1a-4ceb-bd4f-3f657a860400" />
 
-![phone](https://github.com/user-attachments/assets/60831005-3afb-4c5f-a416-fabb362e07d0)
+<img width="512" height="1023" alt="pp" src="https://github.com/user-attachments/assets/96872b38-3cc0-4565-9284-196952325ebb" />
