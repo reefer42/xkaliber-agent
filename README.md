@@ -1,40 +1,43 @@
-# xkaliber-agent
-Xkaliber Agent is a powerful, autonomous AI interface built on Electron. It goes beyond standard chat by allowing local Ollama models to   autonomously manage your file system, interact with APIs, and control physical robotics via GPIO. It features offline text-to-speech, multimodal   vision, WhatsApp integration,
+⚔️ XKALIBER AGENT // VERSION 28
+Autonomous Neural Link • System Harness • Robotics Control
+Xkaliber Agent is a specialized Linux desktop application that transforms local AI models into fully autonomous system operators. Built on Electron and powered by Ollama, it bridges the gap between Large Language Models and physical reality—granting AI the "True Agency" to manage files, execute system commands, and actuate robotics.
 
+(THIS ONLY SUPPORTS OLLAMA)
 
-⚔️ Xkaliber Agent: True Agency
-Xkaliber Agent is an aggressively dark-themed, autonomous AI desktop client designed for users who want to stop chatting with LLMs and start deploying them. Built on Electron and powered by local Ollama models, Xkaliber provides your local AI with "True Agency"—the ability to execute, fail, learn, and succeed on your host machine without human hand-holding.
+🚀 Core Features
+⚡ 1. Autonomous Agent Mode (System Harness)
+Toggle the Sys-Access harness to give your AI "True Agency." The model operates in a continuous loop, autonomously selecting tools to fulfill complex requests:
 
-⚡ Key Features
-🛠️ Agentic System Harness (True Agency Edition)
-Transform your local LLM into a systems engineer. When Agent Mode is active, the model gains a secure toolset to interact directly with your OS:
+Shell Autonomy: Execute bash commands and scripts directly.
 
-Shell Autonomy: Run bash commands, navigate complex directory structures, and manage files (CRUD).
+File Operations: Read, write, delete, and navigate local directory structures.
 
-Self-Correction Loop: If a command returns a traceback or an error, the AI analyzes the output, refines its logic, and retries automatically until the task is complete.
+API Interaction: Make raw HTTP requests to interact with external REST APIs or local services.
 
-Privilege Escalation: Execute sudo commands securely. Provide your key via the UI—the system handles escalation through secure pipelines, ensuring the AI can manage system configs or apt packages without logging sensitive credentials.
+Netrunner Mode: Perform live web searches to inject real-time data into the neural stream.
 
-🔗 Raw API & Database Hooks
-Xkaliber isn't limited to the filesystem. Using the http_request tool, the agent can:
+🤖 2. Hardware & Robotics Control
+Xkaliber v28 moves beyond software, allowing the AI to interact with the physical world:
 
-Query REST APIs and parse JSON responses.
+GPIO Control: Direct read/write access to physical pins for LEDs, relays, and triggers.
 
-Fetch remote schemas to understand external services.
+Sensor Fusion: The agent can poll ultrasonic, IR, and touch sensors to make environment-aware decisions.
 
-Natively interact with databases, CRMs, or any networked endpoint.
+📱 3. Remote Web Interface (Mobile Optimized)
+Turn your host into a localized AI server with the Enable Localhost toggle:
 
-🌐 Netrunner Mode (Live Web)
-Break the local sandbox. The AI dynamically queries DuckDuckGo, scrapes relevant search results, and synthesizes real-time data into your local context window.
+LAN Access: Access the full agent dashboard from any smartphone or tablet on your Wi-Fi network.
 
-📱 WhatsApp Integration
-A built-in QR link allows the agent to communicate externally. Have the AI send you status alerts, script outputs, or automated messages directly via WhatsApp while you’re away from your desk.
+Smart Networking: Automatically detects your local IP and manages port conflicts (defaulting to 18789).
 
-👁️ Multimodal & File Context
-Vision: Support for models like LLaVA and Llama 3.2 Vision for native image analysis.
+Perfect Mobile UX: Optimized with dynamic viewports (100dvh), anti-zoom scaling, and touch-friendly UI components.
 
-File Attachments: Drop local text files or images directly into the chat to provide immediate context for the agent's next task.
+👁️ 4. Multimodal & Vision
+Vision Analysis: Use models like Llava or Bakllava to analyze, describe, and extract data from images.
 
-<img width="1920" height="1200" alt="agent" src="https://github.com/user-attachments/assets/f6705305-7a1a-4ceb-bd4f-3f657a860400" />
+Context Loading: Attach scripts or documents directly. The agent parses the content to help debug code or summarize long-form text.
 
-<img width="512" height="1023" alt="pp" src="https://github.com/user-attachments/assets/96872b38-3cc0-4565-9284-196952325ebb" />
+🗣️ 5. Offline Comms
+Piper TTS: High-speed, high-quality voice synthesis that runs 100% offline.
+
+WhatsApp Bridge: Authenticate via QR code to allow the AI to send notifications and alerts directly to your phone.
