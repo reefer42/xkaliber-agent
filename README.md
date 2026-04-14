@@ -50,6 +50,8 @@ Piper TTS: High-speed, high-quality voice synthesis that runs 100% offline.
 
 WhatsApp Bridge: Authenticate via QR code to allow the AI to send notifications and alerts directly to your phone.
 
+be sure to check out our cli version. after install type xagent to spawn. download in releases section
+
 (ssh fucntion in testing but all other functions work)
 
 <img width="512" height="1023" alt="pp" src="https://github.com/user-attachments/assets/96872b38-3cc0-4565-9284-196952325ebb" />
