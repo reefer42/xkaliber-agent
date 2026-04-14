@@ -43,6 +43,8 @@ Vision Analysis: Use models like Llava or Bakllava to analyze, describe, and ext
 
 Context Loading: Attach scripts or documents directly. The agent parses the content to help debug code or summarize long-form text.
 
+be sure to check out the cli version. after install type xagent to spawn in terminal
+
 🗣️ 5. Offline Comms
 Piper TTS: High-speed, high-quality voice synthesis that runs 100% offline.
 
