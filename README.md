@@ -22,9 +22,6 @@ API Interaction: Make raw HTTP requests to interact with external REST APIs or l
 
 Netrunner Mode: Perform live web searches to inject real-time data into the neural stream.
 
-🤖 2. Hardware & Robotics Control
-Xkaliber v28 moves beyond software, allowing the AI to interact with the physical world:
-
 GPIO Control: Direct read/write access to physical pins for LEDs, relays, and triggers.
 
 Sensor Fusion: The agent can poll ultrasonic, IR, and touch sensors to make environment-aware decisions.
@@ -32,7 +29,6 @@ Sensor Fusion: The agent can poll ultrasonic, IR, and touch sensors to make envi
 📱 3. Remote Web Interface (Mobile Optimized)
 Turn your host into a localized AI server with the Enable Localhost toggle:
 
-LAN Access: Access the full agent dashboard from any smartphone or tablet on your Wi-Fi network.
 
 Smart Networking: Automatically detects your local IP and manages port conflicts (defaulting to 18789).
 
@@ -41,7 +37,6 @@ Perfect Mobile UX: Optimized with dynamic viewports (100dvh), anti-zoom scaling,
 👁️ 4. Multimodal & Vision
 Vision Analysis: Use models like Llava or Bakllava to analyze, describe, and extract data from images.
 
-Context Loading: Attach scripts or documents directly. The agent parses the content to help debug code or summarize long-form text.
 
 be sure to check out the cli version. after install type xagent to spawn in terminal
 
@@ -50,7 +45,6 @@ Piper TTS: High-speed, high-quality voice synthesis that runs 100% offline.
 
 WhatsApp Bridge: Authenticate via QR code to allow the AI to send notifications and alerts directly to your phone.
 
-be sure to check out our cli version. after install type xagent to spawn. download in releases section
 
 (ssh fucntion in testing but all other functions work)
 
