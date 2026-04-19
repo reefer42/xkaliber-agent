@@ -1,4 +1,4 @@
-⚔️kaliber Agent v21
+⚔️kaliber Agent v22
 Local. Autonomous. Unrestricted.
 
 Xkaliber Agent is a high-performance Electron client for Ollama. It transforms local AI into a "System Agent" with full file access, long-term memory, and real-time web connectivity.
