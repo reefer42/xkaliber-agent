@@ -77,7 +77,7 @@ WhatsApp Bridge: Authenticate via QR code to allow the AI to send notifications 
 
 (ssh fucntion in testing but all other functions work)
 
-<iframe width="560" height="315" src="https://www.youtube.com/embed/IN-MA_9tf2U?si=-go2ouGtTrWOwU6s" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+[![Xkaliber agent v23](https://img.youtube.com/vi/IN-MA_9tf2U/0.jpg)](https://www.youtube.com/watch?v=IN-MA_9tf2U)
 
 
 <img width="1920" height="1200" alt="agent" src="https://github.com/user-attachments/assets/f6705305-7a1a-4ceb-bd4f-3f657a860400" />
