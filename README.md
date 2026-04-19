@@ -1,4 +1,4 @@
-⚔️kaliber Agent v21
+⚔️kaliber Agent v22
 The Definitive Autonomous Desktop Client for Local Intelligence.
 
 Xkaliber Agent is a modern, dark-themed Electron interface that transforms local Ollama models into fully capable system operators. Beyond simple chat, v21 equips your neural models with persistent vector memory, secure system-level execution, real-time web scraping, and multimodal integration.
