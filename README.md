@@ -50,5 +50,5 @@ WhatsApp Bridge: Authenticate via QR code to allow the AI to send notifications 
 
 (ssh fucntion in testing but all other functions work)
 
-<img width="512" height="1023" alt="pp" src="https://github.com/user-attachments/assets/96872b38-3cc0-4565-9284-196952325ebb" />
+
 <img width="1920" height="1200" alt="agent" src="https://github.com/user-attachments/assets/f6705305-7a1a-4ceb-bd4f-3f657a860400" />
