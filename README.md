@@ -1,46 +1,37 @@
-⚔️kaliber Agent v22
-The Definitive Autonomous Desktop Client for Local Intelligence.
+⚔️kaliber Agent v21
+Local. Autonomous. Unrestricted.
 
-Xkaliber Agent is a modern, dark-themed Electron interface that transforms local Ollama models into fully capable system operators. Beyond simple chat, v21 equips your neural models with persistent vector memory, secure system-level execution, real-time web scraping, and multimodal integration.
+Xkaliber Agent is a high-performance Electron client for Ollama. It transforms local AI into a "System Agent" with full file access, long-term memory, and real-time web connectivity.
 
-🧠 Neuro-Core: Intelligent Persistent Memory
-Powered by a "Clawbot-style" long-term memory engine, the agent doesn't just chat—it learns and evolves.
+🧠 Neuro-Core (Long-Term Memory)
+Smart VRAM Recovery: Automatically unloads idle models if GPU memory is full to ensure memory retrieval never fails.
 
-Dynamic VRAM Management: The agent autonomously monitors GPU resources. If VRAM is congested during a memory operation, it will suspend idle models to ensure Neuro-Core remains operational.
+Selective Learning: The agent autonomously decides which facts or preferences are important enough to save.
 
-Autonomous Learning: Using the mem_store tool, the agent intelligently decides which facts, user preferences, or project details are worth vectorizing for the long term.
+Local Persistence: All data is stored in ~/.config/xkaliber-agent/, bypassing browser sandbox limits.
 
-Offline Embeddings: Utilizes the all-minilm engine. If missing, Xkaliber Agent securely streams and auto-installs it on the first boot.
+Live UI Feedback: Features a real-time [X MEMS] counter and a flashing [ SAVING... ] indicator.
 
-Secure Vector Storage: Databases are written directly to ~/.config/xkaliber-agent/ via IPC, bypassing browser sandbox limitations for true persistence.
+Full Wipe: A dedicated button instantly clears all session data and the physical vector database.
 
-Real-time Feedback: Monitor your agent's brain with the [X MEMS] counter and the [ NEURO-CORE SAVING... ] status indicator.
+🛡️ System Control & Security
+Bash Execution: Run shell commands directly on your host machine via the agent.
 
-🛡️ System Access & Secure Sudo
-Xkaliber Agent acts as a bridge between the LLM and your hardware.
-
-Host Execution: Run bash commands directly on your machine to manage files, install packages, or configure services.
-
-Sudo Injection: Provide your password in the secure UI field; the agent dynamically pipes it (echo | sudo -S) for root tasks without ever saving your password to logs or neural memory.
+Secure Sudo: A private UI field handles root privileges. It pipes your password safely (sudo -S) without ever saving it to logs or neural memory.
 
 🛠️ The Agentic Toolbelt
-View every action in real-time with transparent execution logs (⚡ Exec: function_name).
+Netrunner: Real-time web search via DuckDuckGo (No API keys required).
 
-File Ops: read, write, list, and delete files across the system.
+WhatsApp: Link your account via QR code to send autonomous notifications.
 
-Memory: High-speed vector_search and mem_store.
+Piper TTS: High-quality, 100% offline Text-to-Speech.
 
-Netrunner: Real-time web search via a secure DuckDuckGo scraper (No API keys required).
+File Manager: Full Read, Write, List, and Delete capabilities.
 
-Communication: Autonomous WhatsApp messaging via QR-linked sessions.
+Multimodal: Drag-and-drop images or text files for instant vision analysis and context.
 
-Logic: dynamic_schema_generate for creating perfectly structured JSON data.
 
-🔊 Audio & Multimodal Uplink
-Piper TTS: Crystal-clear, 100% offline Text-to-Speech (en_US-lessac-medium).
 
-Vision & Context: Drag-and-drop images for vision-model analysis or text files for instant context injection.
-everything in releases section !!!!!
 
 (THIS ONLY SUPPORTS OLLAMA)
 
