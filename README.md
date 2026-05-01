@@ -1,4 +1,8 @@
-# Xkaliber Agent v21 🚀
+# Xkaliber Agent v29 🚀
+
+this supports lmstudio and ollama only. 
+
+(required : ollama pull all-minilm  )
 
 Xkaliber Agent is a modern, dark-themed autonomous agent desktop client built with Electron. It connects seamlessly to local **Ollama** neural models and equips them with system-level access, persistent vector memory, web scraping, and multimodal capabilities. 
 
@@ -40,34 +44,11 @@ The UI provides transparent execution logs (`⚡ Exec: function_name`) followed 
 ## ⚙️ Development & Build Instructions
 
 ### Prerequisites
-*   Node.js (v18+)
+*  lmstudio
 *   Ollama running locally (`ollama serve`)
 
-### Setup
-```bash
-# Install dependencies
-npm install
 
-# Start in development mode
-npm start
-```
+### 🚀 NVIDIA & AMD GPU Support
 
-### 🚀 NVIDIA & Linux GPU Support
-This version includes enhanced compatibility for NVIDIA hardware on Linux. It automatically applies the following optimizations:
-*   `--disable-gpu-sandbox`
-*   `--ignore-gpu-blocklist`
-*   `--use-gl=desktop`
-*   `--enable-gpu-rasterization`
-*   `--force_high_performance_gpu`
 
-If you still experience issues, you can force software rendering by setting `XKALIBER_NO_GPU=1`:
-```bash
-XKALIBER_NO_GPU=1 ./xkaliber-agent
-```
 
-### Building Binaries (AppImage & Debian)
-```bash
-# Build production binaries
-npm run dist
-```
-The output files will be in the `dist/` directory.
