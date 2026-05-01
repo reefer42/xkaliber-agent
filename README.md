@@ -8,6 +8,8 @@ Xkaliber Agent is a modern, dark-themed autonomous agent desktop client built wi
 
 ## 🌟 Key Features
 
+NEW: server remote hosting
+
 ### 🧠 Neuro-Core (Intelligent Persistent Memory)
 The agent features a robust "Clawbot-style" long-term memory engine powered by local embeddings.
 *   **Embedding Smart Learning & VRAM Management**: Automatically handles VRAM congestion during memory retrieval and storage. If the embedding model fails to load due to full VRAM, the agent autonomously suspends/unloads idle models to free up GPU resources, ensuring memory functions remain operational under heavy system load.
