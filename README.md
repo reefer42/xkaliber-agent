@@ -52,5 +52,7 @@ The UI provides transparent execution logs (`⚡ Exec: function_name`) followed 
 
 ### 🚀 NVIDIA & AMD GPU Support
 
+<img width="1920" height="1200" alt="agent" src="https://github.com/user-attachments/assets/f6705305-7a1a-4ceb-bd4f-3f657a860400" />
+
 
 
