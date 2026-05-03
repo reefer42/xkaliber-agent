@@ -52,17 +52,10 @@ npm start
 ```
 
 ### 🚀 NVIDIA & Linux GPU Support
-This version includes enhanced compatibility for NVIDIA hardware on Linux. It automatically applies the following optimizations:
-*   `--disable-gpu-sandbox`
-*   `--ignore-gpu-blocklist`
-*   `--use-gl=desktop`
-*   `--enable-gpu-rasterization`
-*   `--force_high_performance_gpu`
+This version includes enhanced compatibility for NVIDIA hardware on Linux.
 
-If you still experience issues, you can force software rendering by setting `XKALIBER_NO_GPU=1`:
-```bash
-XKALIBER_NO_GPU=1 ./xkaliber-agent
-```
+
+
 
 ### Building Binaries (AppImage & Debian)
 ```bash
