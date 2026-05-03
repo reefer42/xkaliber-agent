@@ -177,8 +177,8 @@ ipcMain.handle('open-file-dialog', async () => {
 
 // Persistent Session Memory Paths
 const userDataPath = app.getPath('userData');
-const historyFile = path.join(userDataPath, 'xkaliber_agent_session_v29.json');
-const legacyHistoryFile = path.join(userDataPath, 'xkaliber_agent_session_v26.json');
+const historyFile = path.join(userDataPath, 'xkaliber_agent_session_v30.json');
+const legacyHistoryFile = path.join(userDataPath, 'xkaliber_agent_session_v29.json');
 
 ipcMain.handle('load-history', async () => {
     try {
@@ -186,12 +186,12 @@ ipcMain.handle('load-history', async () => {
             const data = await fsPromises.readFile(historyFile, 'utf-8');
             return JSON.parse(data);
         } else if (fs.existsSync(legacyHistoryFile)) {
-            // Migrate from previous version (v26)
+            // Migrate from previous version (v29)
             const data = await fsPromises.readFile(legacyHistoryFile, 'utf-8');
             const history = JSON.parse(data);
             // Save it to the new path immediately to complete migration
             await fsPromises.writeFile(historyFile, JSON.stringify(history), 'utf-8');
-            console.log('Migrated legacy v26 history to v29.');
+            console.log('Migrated legacy v29 history to v30.');
             return history;
         }
     } catch (e) {
@@ -531,7 +531,7 @@ ipcMain.handle('perform-search', async (event, query) => {
         const bodies = html.split('result__body');
 
         for (let i = 1; i < bodies.length; i++) {
-            if (results.length >= 5) break;
+            if (results.length >= 6) break;
             const block = bodies[i];
 
             const linkMatch = /<a[^>]*class="[^"]*result__a[^"]*"[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/i.exec(block);
@@ -555,6 +555,10 @@ ipcMain.handle('perform-search', async (event, query) => {
                     .replace(/&quot;/g, '"')
                     .replace(/&#x27;/g, "'")
                     .replace(/&amp;/g, '&')
+                    .replace(/&lt;/g, '<')
+                    .replace(/&gt;/g, '>')
+                    .replace(/&nbsp;/g, ' ')
+                    .replace(/\s+/g, ' ')
                     .trim();
 
                 title = cleanText(title);
@@ -601,6 +605,129 @@ app.whenReady().then(() => {
 
 app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') app.quit();
+});
+
+// --- VRAM & Crash Detection (v30) ---
+ipcMain.handle('get-gpu-telemetry', async () => {
+    return new Promise((resolve) => {
+        const os = require('os');
+        const systemRam = {
+            total: Math.round(os.totalmem() / 1024 / 1024),
+            free: Math.round(os.freemem() / 1024 / 1024),
+            used: Math.round((os.totalmem() - os.freemem()) / 1024 / 1024)
+        };
+
+        // Try AMD first (sysfs)
+        if (process.platform === 'linux' && fs.existsSync('/sys/class/drm/card0/device/mem_info_vram_total')) {
+            try {
+                const vramTotal = parseInt(fs.readFileSync('/sys/class/drm/card0/device/mem_info_vram_total', 'utf8')) || 0;
+                const vramUsed = parseInt(fs.readFileSync('/sys/class/drm/card0/device/mem_info_vram_used', 'utf8')) || 0;
+                let util = 0;
+                try { util = parseInt(fs.readFileSync('/sys/class/drm/card0/device/gpu_busy_percent', 'utf8')); } catch(e){}
+                
+                resolve({
+                    vendor: 'AMD',
+                    memory: { 
+                        total: Math.round(vramTotal / 1024 / 1024), 
+                        used: Math.round(vramUsed / 1024 / 1024), 
+                        free: Math.round((vramTotal - vramUsed) / 1024 / 1024) 
+                    },
+                    utilization: util,
+                    is_high_pressure: (vramUsed / vramTotal) > 0.95,
+                    systemRam
+                });
+                return;
+            } catch (err) {
+                console.error("Failed to read AMD sysfs:", err);
+            }
+        }
+
+        // Fallback to NVIDIA
+        exec('nvidia-smi --query-gpu=memory.total,memory.used,memory.free,utilization.gpu --format=csv,noheader,nounits', (err, stdout) => {
+            if (err) {
+                resolve({ 
+                    error: 'No compatible GPU telemetry found (AMD or NVIDIA)', 
+                    details: err.message,
+                    systemRam 
+                });
+                return;
+            }
+            try {
+                const lines = stdout.trim().split('\n');
+                const gpus = lines.map(line => {
+                    const [total, used, free, util] = line.split(',').map(s => parseInt(s.trim()));
+                    return { total, used, free, utilization: util };
+                });
+                
+                const primaryGpu = gpus[0];
+                resolve({
+                    vendor: 'NVIDIA',
+                    memory: { total: primaryGpu.total, used: primaryGpu.used, free: primaryGpu.free },
+                    utilization: primaryGpu.utilization,
+                    is_high_pressure: (primaryGpu.used / primaryGpu.total) > 0.95,
+                    systemRam
+                });
+            } catch (e) {
+                resolve({ error: 'Failed to parse nvidia-smi output', systemRam });
+            }
+        });
+    });
+});
+
+ipcMain.handle('app-reset', async (event, { killBackends = false, sudoPass = '' } = {}) => {
+    console.log('--- EMERGENCY RESET TRIGGERED ---');
+    
+    if (killBackends) {
+        console.log('Attempting to kill/restart AI backends (Ollama/LM Studio)...');
+        
+        if (process.platform === 'linux') {
+            const sudoCmd = sudoPass ? `echo "${sudoPass}" | sudo -S ` : '';
+            try {
+                // 1. Graceful SIGTERM first to allow VRAM release (Crucial for AMD/ROCm and NVIDIA)
+                exec('pkill -15 -f ollama || true');
+                exec('pkill -15 "LM Studio" || true');
+                exec('pkill -15 lms || true');
+                
+                // Wait 2.5 seconds for graceful shutdown and VRAM deallocation
+                await new Promise(res => setTimeout(res, 2500));
+                
+                // 2. Force kill remaining orphans
+                exec('pkill -9 -f ollama || true');
+                exec('pkill -9 "LM Studio" || true');
+                exec('pkill -9 lms || true');
+
+                // Wait 1 second to ensure ports are freed
+                await new Promise(res => setTimeout(res, 1000));
+
+                // 3. Attempt to restart Ollama service if we have sudo
+                if (sudoCmd) {
+                    try {
+                        console.log('Restarting Ollama service via systemctl...');
+                        execSync(`${sudoCmd} systemctl restart ollama`);
+                    } catch(e) {
+                        console.log('systemctl restart failed or not applicable.');
+                    }
+                }
+            } catch (e) {
+                console.error('Failed to kill backends:', e);
+            }
+        } else if (process.platform === 'win32') {
+            try {
+                exec('taskkill /IM ollama.exe /T'); // Try graceful
+                exec('taskkill /IM "LM Studio.exe" /T');
+                await new Promise(res => setTimeout(res, 2000));
+                exec('taskkill /F /IM ollama.exe /T'); // Force
+                exec('taskkill /F /IM "LM Studio.exe" /T');
+            } catch (e) {}
+        }
+    }
+
+    setTimeout(() => {
+        app.relaunch();
+        app.exit(0);
+    }, 1000);
+    
+    return { success: true };
 });
 
 // Vector Memory Integration (via memory.js)

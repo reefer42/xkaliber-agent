@@ -1,43 +1,36 @@
-# Xkaliber Agent v29 🚀
+# Xkaliber Agent v30.5 🚀
 
-this supports lmstudio and ollama only. 
-
-(required : ollama pull all-minilm  )
-
-Xkaliber Agent is a modern, dark-themed autonomous agent desktop client built with Electron. It connects seamlessly to local **Ollama** neural models and equips them with system-level access, persistent vector memory, web scraping, and multimodal capabilities. 
+Xkaliber Agent is a modern, dark-themed autonomous agent desktop client built with Electron. It connects seamlessly to local **Ollama** and **LM Studio** neural models and equips them with system-level access, persistent vector memory, web scraping, and multimodal capabilities. 
 
 ## 🌟 Key Features
 
-NEW: server remote hosting
+### 🌐 Natural Language Web Search
+*   **Conversational Narrative**: Web search results are processed and presented as a cohesive, first-person narrative (e.g., "I searched the web and found that...").
+*   **Anti-Clutter Design**: Explicit directives and tool schemas prevent the use of bullet points, numbered lists, or markdown tables when conveying search information, ensuring a natural conversational flow.
 
 ### 🧠 Neuro-Core (Intelligent Persistent Memory)
-The agent features a robust "Clawbot-style" long-term memory engine powered by local embeddings.
-*   **Embedding Smart Learning & VRAM Management**: Automatically handles VRAM congestion during memory retrieval and storage. If the embedding model fails to load due to full VRAM, the agent autonomously suspends/unloads idle models to free up GPU resources, ensuring memory functions remain operational under heavy system load.
-*   **Intelligent Storage**: The agent does not blindly record all chatter. It autonomously decides when to use the `mem_store` tool to vectorize and save important user preferences, facts, or project details.
+The agent features a robust long-term memory engine powered by local embeddings.
+*   **Embedding Smart Learning & VRAM Management**: Automatically handles VRAM congestion during memory retrieval and storage. If the embedding model fails to load due to full VRAM, the agent autonomously suspends/unloads idle models to free up GPU resources.
+*   **Strict Fact Retention**: The agent is heavily constrained to avoid saving casual conversation. It autonomously decides to use the `save_new_user_fact_only` tool to vectorize and save only *highly important, permanent* user preferences, facts, or project details.
 *   **Embeddings Engine**: Utilizes the `all-minilm` model. If Ollama doesn't have it installed, Xkaliber Agent will securely stream and auto-download it on startup.
-*   **Main Process Storage**: Memory vector databases are safely written to the user's local disk (`~/.config/xkaliber-agent/xkaliber_vectors_v21.json`) via IPC, bypassing browser sandbox restrictions.
-*   **UI Feedback**: Features a real-time `[X MEMS]` counter and a flashing `[ NEURO-CORE SAVING... ]` indicator whenever a new memory is successfully committed to disk.
-*   **Memory Wipe**: A dedicated WIPE MEMORY button completely flushes the UI context, active session JSON, and the physical vector database.
+*   **Main Process Storage**: Memory vector databases are safely written to the user's local disk via IPC.
+*   **UI Feedback**: Features a real-time `[X MEMS]` counter and a flashing `[ NEURO-CORE SAVING... ]` indicator.
 
 ### 🛡️ System Access & Sudo Override
 *   **Shell Execution**: The agent can run bash commands directly on your host machine to navigate, modify files, and manage the system.
-*   **Secure Sudo Injection**: A password field in the UI allows you to provide your sudo password. When the agent attempts a command requiring root privileges (e.g., `sudo apt install...`), the application dynamically intercepts and pipes your password (`echo "pass" | sudo -S`) without ever logging the password in the chat history or neural memory.
+*   **Secure Sudo Injection**: A password field in the UI allows you to provide your sudo password. When the agent attempts a command requiring root privileges, the application dynamically intercepts and pipes your password.
+*   **Guard Rails**: Strict system prompts prevent the agent from modifying files or configurations unprompted.
 
 ### 🛠️ Autonomous Agent Tools
-The UI provides transparent execution logs (`⚡ Exec: function_name`) followed by exact, formatted JSON arguments so you can always see what the agent is doing under the hood. Available tools include:
+The UI provides transparent execution logs (`⚡ Exec: function_name`). Available tools include:
 *   `run_shell_command`
 *   `read_file`, `write_file`, `list_directory`, `delete_file`
-*   `mem_store`, `memory_search`
-*   `dynamic_schema_generate` (for creating structured JSON data)
+*   `save_new_user_fact_only`, `memory_search`
 *   `web_search`
-*   `send_whatsapp_message`
 
 ### 🌐 Netrunner (Web Access)
-*   Equips the agent with real-time web search capabilities using a secure DuckDuckGo HTML scraper to bypass CORS and API key requirements.
-
-### 📱 WhatsApp Integration
-*   Scan a QR code directly inside the application to link your WhatsApp account.
-*   The agent can autonomously send notifications and messages to numbers via the `send_whatsapp_message` tool.
+*   Equips the agent with real-time web search capabilities using a secure DuckDuckGo HTML scraper (bypassing CORS and API key requirements).
+*   **Conversational Synthesis**: Web data is injected securely into the prompt, forcing the LLM to read the data and respond with a natural, flowing, first-person narrative essay, strictly avoiding bulleted lists or markdown tables.
 
 ### 🔊 Audio Uplink (TTS) & Multimodal
 *   **Piper TTS**: High-quality, offline Text-to-Speech integration (`en_US-lessac-medium`).
@@ -46,13 +39,34 @@ The UI provides transparent execution logs (`⚡ Exec: function_name`) followed 
 ## ⚙️ Development & Build Instructions
 
 ### Prerequisites
-*  lmstudio
+*   Node.js (v18+)
 *   Ollama running locally (`ollama serve`)
 
+### Setup
+```bash
+# Install dependencies
+npm install
 
-### 🚀 NVIDIA & AMD GPU Support
+# Start in development mode
+npm start
+```
 
-<img width="1920" height="1200" alt="agent" src="https://github.com/user-attachments/assets/f6705305-7a1a-4ceb-bd4f-3f657a860400" />
+### 🚀 NVIDIA & Linux GPU Support
+This version includes enhanced compatibility for NVIDIA hardware on Linux. It automatically applies the following optimizations:
+*   `--disable-gpu-sandbox`
+*   `--ignore-gpu-blocklist`
+*   `--use-gl=desktop`
+*   `--enable-gpu-rasterization`
+*   `--force_high_performance_gpu`
 
+If you still experience issues, you can force software rendering by setting `XKALIBER_NO_GPU=1`:
+```bash
+XKALIBER_NO_GPU=1 ./xkaliber-agent
+```
 
-
+### Building Binaries (AppImage & Debian)
+```bash
+# Build production binaries
+npm run dist
+```
+The output files will be in the `dist/` directory.

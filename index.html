@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Xkaliber Agent v29 // Guard Rails Enabled</title>
+    <title>Xkaliber Agent v30.5 // Guard Rails Enabled</title>
     <style>
         :root {
             --bg-color: #0d1117;
@@ -16,6 +16,25 @@
             --code-bg: #21262d;
             --user-msg-bg: #1f6feb;
             --bot-msg-bg: #161b22;
+        }
+
+        /* VRAM Bar Styles */
+        .vram-bar-container {
+            width: 100%;
+            height: 8px;
+            background-color: var(--input-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            margin-top: 4px;
+            margin-bottom: 4px;
+            overflow: hidden;
+        }
+
+        .vram-bar-fill {
+            height: 100%;
+            width: 0%;
+            background-color: var(--accent-color);
+            transition: width 0.3s ease, background-color 0.3s ease;
         }
 
         body {
@@ -719,6 +738,22 @@
         </div>
 
         <div class="spacer" style="flex:1;"></div>
+
+        <div class="control-group" id="hardware-monitor" style="border: 1px solid var(--border-color); padding: 8px; border-radius: 4px; margin-top: 10px; display: none; background: rgba(255, 183, 3, 0.05);">
+            <label style="color: #ffb703; font-weight: bold; font-size: 0.75rem; margin-bottom: 5px; display: block;">🛡️ HARDWARE GUARD</label>
+            <div id="gpu-stats" style="font-size: 0.7rem; color: #8b949e; margin-bottom: 8px; line-height: 1.4;">
+                SYS RAM: <span id="ram-info">Scanning...</span>
+                <div class="vram-bar-container" style="margin-bottom: 8px;">
+                    <div id="ram-bar-fill" class="vram-bar-fill" style="background-color: #008f11;"></div>
+                </div>
+                GPU VRAM: <span id="vram-info">Scanning...</span>
+                <div class="vram-bar-container">
+                    <div id="vram-bar-fill" class="vram-bar-fill"></div>
+                </div>
+                GPU LOAD: <span id="gpu-load">Scanning...</span>
+            </div>
+            <button id="hard-reset-btn" class="clear-btn" style="font-size: 0.65rem; padding: 4px; border-color: #ffb703; color: #ffb703; margin-top: 0; background: transparent;">EMERGENCY RESET</button>
+        </div>
 
         <div class="status-indicator">
             <div id="memory-indicator" style="display: none; color: #9d4edd; font-size: 0.7rem; margin-right: 10px; font-weight: bold;">[ NEURO-CORE SAVING... ]</div>

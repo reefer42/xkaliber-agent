@@ -72,6 +72,15 @@ const netrunnerToggle = document.getElementById('netrunner-toggle');
 const exportBtn = document.getElementById('export-btn');
 const importBtn = document.getElementById('import-btn');
 
+// --- Hardware Guard Elements (v30) ---
+const hardwareMonitor = document.getElementById('hardware-monitor');
+const vramInfo = document.getElementById('vram-info');
+const ramInfo = document.getElementById('ram-info');
+const gpuLoad = document.getElementById('gpu-load');
+const hardResetBtn = document.getElementById('hard-reset-btn');
+const vramBarFill = document.getElementById('vram-bar-fill');
+const ramBarFill = document.getElementById('ram-bar-fill');
+
 // --- Uplink Mode & Server Config ---
 const uplinkMode = document.getElementById('uplink-mode');
 const lmsServerContainer = document.getElementById('lms-server-container');
@@ -249,8 +258,8 @@ const AGENT_TOOLS = [
         type: "function",
         function: {
             name: "save_new_user_fact_only",
-            description: "Appends a single fact to memory. CRITICAL: ONLY evaluate the VERY LAST user message. NEVER save information from older messages in the chat history. If the last message is just a question, DO NOT use this tool.",
-            parameters: { type: "object", properties: { exact_new_fact: { type: "string", description: "The distinct fact extracted ONLY from the latest message." } }, required: ["exact_new_fact"] }
+            description: "Saves a permanent fact to memory. EXTREMELY STRICT RULES: DO NOT use this for casual chat, greetings (e.g. 'hi', 'how are you'), or temporary thoughts. ONLY use this if the user states a highly important, permanent fact about themselves (e.g. 'I am allergic to peanuts'). If the input is trivial, DO NOT USE THIS TOOL.",
+            parameters: { type: "object", properties: { exact_new_fact: { type: "string", description: "The distinct, highly important permanent fact extracted ONLY from the latest message." } }, required: ["exact_new_fact"] }
         }
     },
     {
@@ -401,15 +410,22 @@ async function init() {
             }
         } catch (e) {}
 
-        const baseSystemPrompt = `You are Xkaliber Agent v29 (AMD Optimized). You now have LM Studio support alongside Ollama. You have access to dynamic schemas, robust vector memory, and system tools. Sudo is handled implicitly if a password is provided by the user. 
+        const baseSystemPrompt = `You are Xkaliber Agent v30.5, a conversational AI assistant (AMD Optimized). You have access to persistent vector memory, web search, and system tools. Respond naturally and conversationally to the user. Do not invoke tools for casual conversation or greetings.
 
 GUARD RAILS:
-1. STRICT ACTION LIMITS: NEVER use 'write_file', 'delete_file', or 'run_shell_command' to modify the system or create files UNLESS the user explicitly requested that exact action.
-2. NO UNPROMPTED SETUP: Do not create configuration files, scripts, or examples unprompted. If asked to "look", "read", or "list", ONLY use read-only tools and DO NOT follow up with write actions.
-3. If you are unsure about intent or lack context, DO NOT guess or hallucinate a tool call. Instead, ask the user for clarification.
-4. You MUST use tools to interact with the world, but only when you are certain of the intent.
+1. STRICT ACTION LIMITS: Never use file modification tools like write_file, delete_file, or run_shell_command unless explicitly requested by the user. 
+2. NO UNPROMPTED SETUP: Do not set up configuration files or scripts unprompted. If you are asked to read or list files, do not follow up with write actions. 
+3. PREVENT HALLUCINATIONS: If you are unsure of the user's intent or lack context, DO NOT guess or hallucinate a tool call. Instead, ask the user for clarification.
 
-IMPORTANT: Use the \`save_new_user_fact_only\` tool to explicitly save important facts, preferences, or details about the user or project into your persistent memory. CRITICAL: NEVER re-save a fact that was mentioned in an older message. ONLY save facts if they were introduced in the VERY LAST user message. If asked about past facts or preferences you do not know, actively use the \`memory_search\` tool to retrieve them.${envContext}`;
+WEB SEARCH GUIDELINES:
+When you use the web_search tool, you must provide the findings to the user as clean, natural language. Explain the information from a first-person perspective (e.g., 'I found that...'). Avoid using bullet points, numbered lists, or cluttered responses. Instead, present the search results as a cohesive, conversational narrative.
+
+MEMORY DIRECTIVES:
+You have a tool called save_new_user_fact_only. You must be EXTREMELY SELECTIVE with this tool.
+- DO NOT save casual conversation, greetings, or temporary thoughts.
+- ONLY save permanent, highly important facts (e.g., "I am allergic to peanuts", "My favorite color is blue", "I work as a software engineer").
+- NEVER save a fact that was already saved or discussed in previous messages.
+- If the user says something trivial, just chat with them normally and DO NOT use the memory tool.${envContext}`;
 
         if (!chatHistory || chatHistory.length === 0) {
             chatHistory = [{ role: "system", content: baseSystemPrompt }];
@@ -465,16 +481,106 @@ function setStatus(online, text) {
     }
 }
 
-function checkConnection() {
+// --- v30: Hardware Guard Logic ---
+let connectionFailureCount = 0;
+let isHardwareMonitorActive = false;
+
+async function checkHardwareHealth() {
+    if (isWebMode) return;
+    
+    try {
+        const telemetry = await window.api.invoke('get-gpu-telemetry');
+        if (telemetry) {
+            // Always show monitor if we have telemetry
+            hardwareMonitor.style.display = 'block';
+            
+            if (telemetry.systemRam) {
+                const sysPct = ((telemetry.systemRam.used / telemetry.systemRam.total) * 100).toFixed(0);
+                if (ramInfo) ramInfo.textContent = `${telemetry.systemRam.used}MB / ${telemetry.systemRam.total}MB (${sysPct}%)`;
+                if (ramBarFill) {
+                    ramBarFill.style.width = `${sysPct}%`;
+                    ramBarFill.style.backgroundColor = sysPct > 90 ? '#ff4444' : (sysPct > 80 ? '#ffb703' : '#008f11');
+                }
+            }
+
+            if (!telemetry.error && telemetry.memory) {
+                isHardwareMonitorActive = true;
+                const usedMB = telemetry.memory.used;
+                const totalMB = telemetry.memory.total;
+                const vramPct = ((usedMB / totalMB) * 100).toFixed(0);
+                
+                vramInfo.textContent = `${usedMB}MB / ${totalMB}MB (${vramPct}%)`;
+                vramInfo.style.color = telemetry.is_high_pressure ? '#ff4444' : (vramPct > 80 ? '#ffb703' : '#8b949e');
+                
+                if (vramBarFill) {
+                    vramBarFill.style.width = `${vramPct}%`;
+                    vramBarFill.style.backgroundColor = telemetry.is_high_pressure ? '#ff4444' : (vramPct > 80 ? '#ffb703' : 'var(--accent-color)');
+                }
+                
+                gpuLoad.textContent = `${telemetry.utilization}%`;
+                gpuLoad.style.color = telemetry.utilization > 90 ? '#ff4444' : (telemetry.utilization > 70 ? '#ffb703' : '#8b949e');
+
+                if (telemetry.is_high_pressure && !isSending) {
+                    console.warn('[WATCHDOG] High VRAM pressure detected.');
+                }
+            } else if (telemetry.error) {
+                 vramInfo.textContent = 'NO NVIDIA GPU';
+                 vramInfo.style.color = '#8b949e';
+                 gpuLoad.textContent = '0%';
+            }
+        }
+    } catch (e) {
+        console.error('Hardware health check failed:', e);
+    }
+}
+
+async function checkConnection() {
     const endpoint = uplinkMode.checked ? `${currentApiBase}/v1/models` : `${currentApiBase}/tags`;
-    fetch(endpoint)
-        .then(r => setStatus(r.ok, r.ok ? 'ONLINE' : 'OFFLINE'))
-        .catch(() => setStatus(false, 'OFFLINE'));
+    
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000); // 8s timeout for health check
+    
+    try {
+        const res = await fetch(endpoint, { signal: controller.signal });
+        clearTimeout(timeoutId);
+        
+        if (res.ok) {
+            setStatus(true, 'ONLINE');
+            connectionFailureCount = 0;
+        } else {
+            throw new Error('Endpoint returned error');
+        }
+    } catch (err) {
+        clearTimeout(timeoutId);
+        connectionFailureCount++;
+        setStatus(false, connectionFailureCount > 2 ? 'BACKEND HUNG' : 'OFFLINE');
+        
+        if (connectionFailureCount >= 3 && !isSending) {
+            console.error('[WATCHDOG] AI Backend is not responding. VRAM might be full.');
+            if (connectionFailureCount === 3) {
+                addMessage('system', '⚠️ **Hardware Watchdog Alert:** AI backend is not responding. This often happens when VRAM is exhausted by a large model. If the app is locked, use **EMERGENCY RESET** in the sidebar.');
+            }
+        }
+    }
     
     // Periodically sync memory count
     updateMemoryCount();
+    
+    // Check hardware telemetry
+    checkHardwareHealth();
 }
 setInterval(checkConnection, 5000);
+
+if (hardResetBtn) {
+    hardResetBtn.addEventListener('click', async () => {
+        const sudoPass = document.getElementById('sudo-input')?.value || '';
+        const confirmed = confirm("This will attempt to Gracefully KILL AI backends and RESTART Xkaliber Agent. \n\nIf you have provided a Sudo Password, it will also attempt to restart the Ollama service properly to clear VRAM locks.\n\nContinue?");
+        if (confirmed) {
+            addMessage('system', 'Initiating emergency hardware reset. Please wait 3-5 seconds for VRAM to clear...');
+            await window.api.invoke('app-reset', { killBackends: true, sudoPass });
+        }
+    });
+}
 
 function addMessage(role, text) {
     const div = document.createElement('div');
@@ -535,7 +641,13 @@ async function executeTool(name, args) {
     if (name === 'dynamic_schema_generate') {
         return JSON.stringify({ task: args.task, schema: { type: "object", properties: args.fields.reduce((a, f) => ({ ...a, [f]: { type: "string" } }), {}) } });
     }
-    if (name === 'web_search') return JSON.stringify(await window.api.invoke('perform-search', args.query));
+    if (name === 'web_search') {
+        const results = await window.api.invoke('perform-search', args.query);
+        if (results && !results.error && results.length > 0) {
+            return "I've conducted a web search and found several relevant pieces of information. " + results.map(r => `From a site titled "${r.title}" at ${r.url}, I learned that ${r.snippet}`).join(' Additionally, ');
+        }
+        return "I searched the web but couldn't find any relevant results for that query.";
+    }
     if (name === 'send_whatsapp_message') return (await window.api.invoke('whatsapp-send', { number: args.number, message: args.message })).success ? "Success" : "Error";
     return `Unknown tool: ${name}`;
 }
@@ -614,8 +726,18 @@ async function sendMessage() {
         try {
             const searchResults = await window.api.invoke('perform-search', text);
             if (searchResults && !searchResults.error && searchResults.length > 0) {
-                const webCtx = searchResults.map(r => `- ${r.title}: ${r.snippet} (${r.url})`).join('\n');
-                finalPrompt += "\n\n[WEB SEARCH RESULTS]:\n" + webCtx;
+                const webCtx = searchResults.map(r => `Source: ${r.title}. Details: ${r.snippet}`).join(' ');
+                finalPrompt = `I need you to write a conversational news report based on the following web data.
+
+CRITICAL INSTRUCTIONS:
+- You must write this as a flowing, continuous essay consisting only of paragraphs.
+- You must speak in the first person (e.g., "I discovered that...").
+- Do NOT use bullet points. Do NOT use dashes. Do NOT use numbered lists. Do NOT use tables.
+
+Web Data to use:
+${webCtx}
+
+My Query: ${text}`;
                 const searchLog = document.createElement('div');
                 searchLog.className = 'search-results-log';
                 searchLog.innerHTML = `<strong>NETRUNNER:</strong> Found ${searchResults.length} results<ul>${searchResults.map(r => `<li><a href="${r.url}" target="_blank">${r.title}</a></li>`).join('')}</ul>`;
@@ -640,15 +762,22 @@ async function sendMessage() {
                 }
             } catch (e) {}
             
-            const systemPrompt = `You are Xkaliber Agent v29 (AMD Optimized). You now have LM Studio support alongside Ollama. You have access to persistent vector memory and system tools. 
+            const systemPrompt = `You are Xkaliber Agent v30.5, a conversational AI assistant (AMD Optimized). You have access to persistent vector memory, web search, and system tools. Respond naturally and conversationally to the user. Do not invoke tools for casual conversation or greetings.
 
 GUARD RAILS:
-1. STRICT ACTION LIMITS: NEVER use 'write_file', 'delete_file', or 'run_shell_command' to modify the system or create files UNLESS the user explicitly requested that exact action.
-2. NO UNPROMPTED SETUP: Do not create configuration files, scripts, or examples unprompted. If asked to "look", "read", or "list", ONLY use read-only tools and DO NOT follow up with write actions.
-3. If you are unsure about intent or lack context, DO NOT guess or hallucinate a tool call. Instead, ask the user for clarification.
-4. You MUST use tools to interact with the world, but only when you are certain of the intent.
+1. STRICT ACTION LIMITS: Never use file modification tools like write_file, delete_file, or run_shell_command unless explicitly requested by the user. 
+2. NO UNPROMPTED SETUP: Do not set up configuration files or scripts unprompted. If you are asked to read or list files, do not follow up with write actions. 
+3. PREVENT HALLUCINATIONS: If you are unsure of the user's intent or lack context, DO NOT guess or hallucinate a tool call. Instead, ask the user for clarification.
 
-IMPORTANT: Use the \`save_new_user_fact_only\` tool to explicitly save important facts, preferences, or details about the user or project into your persistent memory. CRITICAL: NEVER re-save a fact that was mentioned in an older message. ONLY save facts if they were introduced in the VERY LAST user message. If asked about past facts or preferences you do not know, actively use the \`memory_search\` tool to retrieve them.${envContext}`;
+WEB SEARCH GUIDELINES:
+When you use the web_search tool, you must provide the findings to the user as clean, natural language. Explain the information from a first-person perspective (e.g., 'I found that...'). Avoid using bullet points, numbered lists, or cluttered responses. Instead, present the search results as a cohesive, conversational narrative.
+
+MEMORY DIRECTIVES:
+You have a tool called save_new_user_fact_only. You must be EXTREMELY SELECTIVE with this tool.
+- DO NOT save casual conversation, greetings, or temporary thoughts.
+- ONLY save permanent, highly important facts (e.g., "I am allergic to peanuts", "My favorite color is blue", "I work as a software engineer").
+- NEVER save a fact that was already saved or discussed in previous messages.
+- If the user says something trivial, just chat with them normally and DO NOT use the memory tool.${envContext}`;
             if (!chatHistory) chatHistory = [];
             chatHistory.unshift({ role: "system", content: systemPrompt });
         }

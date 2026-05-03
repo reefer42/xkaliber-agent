@@ -30,7 +30,8 @@ const INVOKE_CHANNELS = [
     'agent-delete-file', 'agent-list-directory',
     'perform-search',
     'mem-store', 'mem-query', 'mem-count', 'mem-clear',
-    'export-session', 'import-session', 'get-host-url', 'get-env-info'
+    'export-session', 'import-session', 'get-host-url', 'get-env-info',
+    'get-gpu-telemetry', 'app-reset'
 ];
 
 const SEND_CHANNELS = ['tts-speak', 'tts-stop'];

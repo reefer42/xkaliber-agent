@@ -1,34 +1,17 @@
-# Subagent Report: Xkaliber Chat v3 Build
+# Build Report v30.3
 
-## Status: COMPLETE ✅
+## Changes from v30.2
+1.  **Synthesized Web Search Response:**
+    *   Updated `renderer.js` to format web search results as a consolidated data block.
+    *   Injected strict instructions to ensure the model provides a single, well-organized summary instead of unorganized lists.
+    *   Updated system prompts (`baseSystemPrompt` and `sendMessage` prompt) to enforce deep synthesis and inline citations.
+2.  **Search Handler Refinement:**
+    *   Limited search results to 6 for optimal context balance.
+    *   Improved `cleanText` in `main.js` to handle `&lt;`, `&gt;`, `&nbsp;`, and multiple spaces.
+3.  **Tool Consistency:**
+    *   Synchronized `tools.js` and `xagent-cli/tools.js` with new descriptions and the 6-result limit.
 
-I have successfully built **Xkaliber Chat v3** in `/home/system76/Documents/test/xkaliber chat/v3` based on v2, implementing all requested fixes and features.
-
-## Fixes & Features
-
-1.  **TTS Toggle Visibility Fixed**:
-    *   Updated CSS in `index.html` to ensure `#sidebar` is wider (280px) and scrollable if needed.
-    *   Replaced the hidden/cramped TTS toggle with a prominent **Control Group** containing both Audio and Netrunner toggles.
-
-2.  **DuckDuckGo "Netrunner Mode" Added**:
-    *   Added a "NETRUNNER (WEB)" toggle to the UI.
-    *   Implemented `perform-search` IPC handler in `main.js` that scrapes DuckDuckGo HTML results (avoiding CORS/API keys).
-    *   Updated `renderer.js` to intercept prompts when Netrunner is active, fetch search results, and feed them as context to Ollama.
-
-3.  **TTS Audio Debugging**:
-    *   Added a **"Test Audio"** button next to the toggle.
-    *   Enhanced `main.js` TTS logic to log detailed paths and errors for `piper` and `aplay`.
-    *   Added error handling in `renderer.js` to display audio errors directly in the chat window.
-
-## Build & Deliverables
-
-*   **Source Code**: Located in `/home/system76/Documents/test/xkaliber chat/v3/`.
-*   **Binaries**: Located in `/home/system76/Documents/test/xkaliber chat/v3/dist/`.
-    *   `Xkaliber Chat v3-3.0.0.AppImage` (244MB)
-    *   `xkaliber-chat-v3_3.0.0_amd64.deb` (187MB)
-
-## Build Notes
-Due to a broken `node` environment (wrapper script issue), I created a custom build script `build_v3.sh` that manually invokes the correct node binary and sets up the environment to run `electron-builder` successfully.
-
-You can launch the new version via:
-`./v3/dist/Xkaliber\ Chat\ v3-3.0.0.AppImage`
+## Verified Features
+- Web search returns 6 results.
+- Response is presented as a synthesized summary.
+- Memory and Model detection functionality remains intact after clean refactor.

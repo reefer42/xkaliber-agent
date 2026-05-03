@@ -40,8 +40,8 @@ const AGENT_TOOLS = [
         type: "function",
         function: {
             name: "web_search",
-            description: "Search the internet for real-time news, facts, or information.",
-            parameters: { type: "object", properties: { query: { type: "string" } }, required: ["query"] }
+            description: "Search the web for real-time information, technical documentation, or news. Use this tool actively when the user asks questions that require up-to-date knowledge or deep research.",
+            parameters: { type: "object", properties: { query: { type: "string", description: "The search query to look up on the web." } }, required: ["query"] }
         }
     },
     {
@@ -66,7 +66,7 @@ async function performWebSearch(query) {
         const html = await response.text();
         const results = [];
         const bodies = html.split('result__body');
-        for (let i = 1; i < Math.min(bodies.length, 6); i++) {
+        for (let i = 1; i < Math.min(bodies.length, 7); i++) {
             const block = bodies[i];
             const titleMatch = block.match(/result__a[^>]*>(.*?)<\/a>/);
             const snippetMatch = block.match(/result__snippet[^>]*>(.*?)<\/a>/);
@@ -79,9 +79,9 @@ async function performWebSearch(query) {
                 });
             }
         }
-        return results.length > 0 ? JSON.stringify(results) : "No results found.";
+        return results.length > 0 ? "I've conducted a web search and found several relevant pieces of information. " + results.map(r => `From a site titled "${r.title}" at ${r.url}, I learned that ${r.snippet}`).join(' Additionally, ') : "I searched the web but couldn't find any relevant results for that query.";
     } catch (e) {
-        return `Search error: ${e.message}`;
+        return `I encountered an error while trying to search the web: ${e.message}`;
     }
 }
 

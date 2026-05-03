@@ -1,4 +1,53 @@
-# Xkaliber Agent v29 Changelog
+# Xkaliber Agent v30.5 Changelog
+
+## [30.5.0] - 2025-09-03
+
+### Enhanced
+- **Web Search Presentation**: Completely refactored how web search results are processed and presented.
+  - **Natural Language Narrative**: The agent is now instructed to present all search findings as a cohesive, first-person narrative (e.g., "I found that...").
+  - **Anti-Clutter Directives**: Explicitly prohibited the use of bullet points, numbered lists, and markdown tables for search results to ensure a clean, conversational flow.
+  - **Narrative Tool Output**: Modified the `web_search` tool to return information in a narrative paragraph format, guiding the model toward the desired conversational style.
+- **Builds**: Generated updated standalone executables for v30.5.0.
+  - Packaged as `.AppImage` for portable Linux deployment.
+  - Packaged as `.deb` for Debian/Ubuntu based systems.
+
+# Xkaliber Agent v30.4 Changelog
+
+## [30.4.0] - 2026-06-30
+
+### Enhanced
+- **Prompt Architecture**: Re-instated explicit `GUARD RAILS` in the core system prompt to strictly prevent tool call hallucinations and unprompted system modifications.
+- **Narrative Enforcement**: Hardened the system instructions to ensure conversational, non-structured outputs (essays/news reports) when handling web data. The AI is now strictly forbidden from utilizing markdown tables, lists, or bolded headers during web search context generation.
+- **Memory Tool Constraints**: Drastically reduced aggressive memory saves. The `save_new_user_fact_only` tool schema and system prompts have been heavily constrained to ignore casual conversation and greetings, triggering only on highly important, permanent facts.
+
+### Removed
+- **Live Summary**: Removed the experimental "Live Summary" instruction from the web search prompt as it was causing conversational flow issues and bleeding into casual queries.
+
+## [30.3.0] - 2026-06-30
+
+### Enhanced
+- **Web Search Consolidation**: Search results are now synthesized into a single, organized summary rather than individual statements.
+- **Search Result Limit**: Set to a balanced limit of 6 results per query.
+- **Improved Context Injection**: Directives added to both user prompts and system prompts to enforce synthesized, cited responses.
+- **Robust Scraper**: Better HTML entity handling for cleaner data extraction.
+
+## [30.2.0] - 2026-06-29
+
+### Fixed
+- **Hardware Guard Reset (VRAM Lock):** Fixed an issue where the Emergency Reset button aggressively killed Ollama (`kill -9`), causing the AMD ROCm/NVIDIA GPU driver to lock the VRAM and requiring a full PC reboot.
+  - Implemented a graceful shutdown sequence (`kill -15` with a timeout) to allow models to cleanly deallocate VRAM.
+  - Added support for automatically executing `systemctl restart ollama` to guarantee a clean state if the user has provided a Sudo Password in the UI.
+
+## [30.0.0] - 2026-06-29
+
+### Added
+- **🛡️ Hardware Guard Implementation:**
+  - Real-time VRAM and System RAM telemetry monitor in the sidebar.
+  - Interactive GPU load tracking for both AMD and NVIDIA hardware.
+  - **Emergency Hardware Reset:** One-click feature to kill unresponsive AI backends (Ollama/LMS) and relaunch the agent.
+  - **Watchdog Alert System:** Proactive notifications when the AI backend stops responding, often due to VRAM exhaustion.
+- **Improved Telemetry Support:** Added AMD `sysfs` detection for VRAM and GPU utilization as a primary telemetry source.
+- **Safe State Migration:** Automated migration of session history from v29 to v30.
 
 ## [29.0.0] - 2026-04-30
 
