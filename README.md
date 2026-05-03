@@ -63,3 +63,5 @@ This version includes enhanced compatibility for NVIDIA hardware on Linux.
 npm run dist
 ```
 The output files will be in the `dist/` directory.
+
+this tool can be dangerous if used irresponsibly. not responcible for anything if you so choose to use this application
