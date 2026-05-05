@@ -1,7 +1,9 @@
 # Xkaliber Agent v32 🚀
 
-Xkaliber Agent is a modern, dark-themed autonomous agent desktop client built with Electron. It connects seamlessly to local **Ollama** and **LM Studio** neural models and equips them with system-level access, persistent vector memory, web scraping, and multimodal capabilities. 
+this only supports ollama and lmstudio and you only need to download : ollama pull all-minilm
 
+Xkaliber Agent is a modern, dark-themed autonomous agent desktop client built with Electron. It connects seamlessly to local **Ollama** and **LM Studio** neural models and equips them with system-level access, persistent vector memory, web scraping, and multimodal capabilities. 
+##recommended model :gwen3.5 and 3.6 
 ## 🌟 Key Features
 
 ### 🔐 Secure Access Control & Admin Panel (v32)
