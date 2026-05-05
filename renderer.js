@@ -5,9 +5,18 @@ if (!window.api) {
     window.api = {
         invoke: async (channel, ...args) => {
             try {
+                const token = localStorage.getItem('auth_token');
+                const headers = { 'Content-Type': 'application/json' };
+                if (token) headers['Authorization'] = `Bearer ${token}`;
+                
+                // Special actions that are allowed without a token if the server allows it
+                if (['auth-login', 'auth-register', 'auth-has-users'].includes(channel)) {
+                    headers['x-auth-action'] = channel.replace('auth-', '');
+                }
+
                 const response = await fetch('/api/invoke', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: headers,
                     body: JSON.stringify({ channel, args })
                 });
                 return await response.json();
@@ -33,6 +42,12 @@ if (isWebMode) {
     const originalFetch = window.fetch;
     window.fetch = async (input, init = {}) => {
         let urlStr = typeof input === 'string' ? input : input.url;
+        
+        const token = localStorage.getItem('auth_token');
+        if (token) {
+            init.headers = { ...init.headers, 'Authorization': `Bearer ${token}` };
+        }
+
         // Proxy ALL absolute HTTP requests through the Node host proxy to bypass CORS
         if (urlStr.startsWith('http://') || urlStr.startsWith('https://')) {
             // Mobile devices can't hit localhost directly, so we tell the host to route to 127.0.0.1
@@ -85,6 +100,29 @@ const ramBarFill = document.getElementById('ram-bar-fill');
 const uplinkMode = document.getElementById('uplink-mode');
 const lmsServerContainer = document.getElementById('lms-server-container');
 const lmsServerInput = document.getElementById('lms-server-input');
+
+// --- Auth Elements ---
+const loginOverlay = document.getElementById('login-overlay');
+const loginFields = document.getElementById('login-fields');
+const registerFields = document.getElementById('register-fields');
+const authTitle = document.getElementById('auth-title');
+const authUsername = document.getElementById('auth-username');
+const authPassword = document.getElementById('auth-password');
+const loginBtn = document.getElementById('login-btn');
+const authSwitchText = document.getElementById('auth-switch-text');
+const regUsername = document.getElementById('reg-username');
+const regPassword = document.getElementById('reg-password');
+const regPasswordConfirm = document.getElementById('reg-password-confirm');
+const registerSubmitBtn = document.getElementById('register-submit-btn');
+const regSwitchText = document.getElementById('reg-switch-text');
+const authError = document.getElementById('auth-error');
+const currentUserDisplay = document.getElementById('current-user-display');
+const logoutBtn = document.getElementById('logout-btn');
+const adminPanelBtn = document.getElementById('admin-panel-btn');
+const adminOverlay = document.getElementById('admin-overlay');
+const adminUserList = document.getElementById('admin-user-list');
+const closeAdminBtn = document.getElementById('close-admin-btn');
+const agentToggle = document.getElementById('agent-toggle');
 
 const OLLAMA_API = 'http://127.0.0.1:11434/api';
 let currentApiBase = OLLAMA_API;
@@ -378,6 +416,202 @@ if (importBtn) {
 }
 
 // --- Init & Connection ---
+let authToken = localStorage.getItem('auth_token');
+
+async function checkAuth() {
+    if (!authToken) {
+        showLogin();
+        return;
+    }
+    const res = await window.api.invoke('auth-check', authToken);
+    if (res.authenticated) {
+        hideLogin(res.user);
+    } else {
+        localStorage.removeItem('auth_token');
+        authToken = null;
+        showLogin();
+    }
+}
+
+function showLogin() {
+    loginOverlay.style.display = 'flex';
+    // Check if any users exist
+    window.api.invoke('auth-has-users').then(res => {
+        if (res && !res.hasUsers) {
+            showRegister();
+            authTitle.textContent = 'CREATE ADMIN ACCOUNT';
+            if (regSwitchText) regSwitchText.style.display = 'none';
+        }
+    });
+}
+
+function hideLogin(user) {
+    loginOverlay.style.display = 'none';
+    currentUserDisplay.textContent = `User: ${user.username}`;
+    
+    if (user.role === 'admin') {
+        adminPanelBtn.style.display = 'block';
+    } else {
+        adminPanelBtn.style.display = 'none';
+    }
+
+    if (!user.permissions.canUseTools) {
+        agentToggle.checked = false;
+        agentToggle.disabled = true;
+        agentToggle.parentElement.style.opacity = '0.5';
+        agentToggle.parentElement.title = 'Disabled by Administrator';
+    } else {
+        agentToggle.disabled = false;
+        agentToggle.parentElement.style.opacity = '1';
+        agentToggle.parentElement.title = '';
+    }
+
+    init();
+}
+
+function showRegister() {
+    loginFields.style.display = 'none';
+    registerFields.style.display = 'block';
+    authTitle.textContent = 'CREATE ACCOUNT';
+}
+
+function showLoginForm() {
+    registerFields.style.display = 'none';
+    loginFields.style.display = 'block';
+    authTitle.textContent = 'LOGIN REQUIRED';
+}
+
+if (authSwitchText) authSwitchText.addEventListener('click', showRegister);
+if (regSwitchText) regSwitchText.addEventListener('click', showLoginForm);
+
+if (loginBtn) {
+    loginBtn.addEventListener('click', async () => {
+        const username = authUsername.value.trim();
+        const password = authPassword.value;
+        if (!username || !password) return;
+        
+        loginBtn.disabled = true;
+        authError.textContent = '';
+        const res = await window.api.invoke('auth-login', { username, password });
+        if (res.success) {
+            authToken = res.token;
+            localStorage.setItem('auth_token', authToken);
+            checkAuth();
+        } else {
+            authError.textContent = res.error;
+        }
+        loginBtn.disabled = false;
+    });
+}
+
+if (registerSubmitBtn) {
+    registerSubmitBtn.addEventListener('click', async () => {
+        const username = regUsername.value.trim();
+        const password = regPassword.value;
+        const confirm = regPasswordConfirm.value;
+        
+        if (!username || !password) return;
+        if (password !== confirm) {
+            authError.textContent = 'Passwords do not match';
+            return;
+        }
+        
+        registerSubmitBtn.disabled = true;
+        authError.textContent = '';
+        const res = await window.api.invoke('auth-register', { username, password });
+        if (res.success) {
+            authError.style.color = 'var(--accent-color)';
+            authError.textContent = 'Account created! Please sign in.';
+            setTimeout(() => {
+                authError.style.color = '';
+                showLoginForm();
+            }, 1500);
+        } else {
+            authError.textContent = res.error;
+        }
+        registerSubmitBtn.disabled = false;
+    });
+}
+
+if (logoutBtn) {
+    logoutBtn.addEventListener('click', async () => {
+        if (authToken) await window.api.invoke('auth-logout', authToken);
+        localStorage.removeItem('auth_token');
+        authToken = null;
+        location.reload();
+    });
+}
+
+// --- Admin Panel Logic ---
+if (adminPanelBtn) {
+    adminPanelBtn.addEventListener('click', async () => {
+        adminOverlay.style.display = 'flex';
+        await renderAdminUserList();
+    });
+}
+
+if (closeAdminBtn) {
+    closeAdminBtn.addEventListener('click', () => {
+        adminOverlay.style.display = 'none';
+    });
+}
+
+async function renderAdminUserList() {
+    adminUserList.innerHTML = '<p style="color:var(--text-color);">Loading users...</p>';
+    const res = await window.api.invoke('auth-get-users', authToken);
+    if (!res.success) {
+        adminUserList.innerHTML = `<p style="color:#ff4444;">Error: ${res.error}</p>`;
+        return;
+    }
+
+    adminUserList.innerHTML = '';
+    res.users.forEach(user => {
+        const row = document.createElement('div');
+        row.style.cssText = 'display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.05); padding: 10px; border-radius: 4px; border: 1px solid var(--border-color);';
+        
+        const isSelf = currentUserDisplay.textContent.includes(user.username);
+        
+        row.innerHTML = `
+            <div>
+                <strong style="color: var(--accent-color);">${user.username}</strong>
+                <span style="font-size: 0.7rem; color: #8b949e; margin-left: 5px;">[${user.role.toUpperCase()}]</span>
+            </div>
+            <div style="display: flex; gap: 15px;">
+                <label style="display:flex; align-items:center; gap:5px; font-size:0.8rem; color:var(--text-color); cursor:${isSelf ? 'not-allowed' : 'pointer'};">
+                    <input type="checkbox" class="perm-toggle" data-user="${user.username}" data-perm="canUseApp" ${user.permissions.canUseApp ? 'checked' : ''} ${isSelf ? 'disabled' : ''}>
+                    App Access
+                </label>
+                <label style="display:flex; align-items:center; gap:5px; font-size:0.8rem; color:var(--text-color); cursor:${isSelf ? 'not-allowed' : 'pointer'};">
+                    <input type="checkbox" class="perm-toggle" data-user="${user.username}" data-perm="canUseTools" ${user.permissions.canUseTools ? 'checked' : ''} ${isSelf ? 'disabled' : ''}>
+                    Tool Access
+                </label>
+            </div>
+        `;
+        adminUserList.appendChild(row);
+    });
+
+    document.querySelectorAll('.perm-toggle').forEach(toggle => {
+        toggle.addEventListener('change', async (e) => {
+            const targetUsername = e.target.dataset.user;
+            const perm = e.target.dataset.perm;
+            const value = e.target.checked;
+            
+            e.target.disabled = true;
+            const updateRes = await window.api.invoke('auth-update-user', {
+                token: authToken,
+                targetUsername: targetUsername,
+                permissions: { [perm]: value }
+            });
+            
+            if (!updateRes.success) {
+                alert(`Failed to update permissions: ${updateRes.error}`);
+                e.target.checked = !value; // Revert UI
+            }
+            e.target.disabled = false;
+        });
+    });
+}
+
 async function init() {
     try {
         const urlDispContainer = document.getElementById('host-url-container');
@@ -410,12 +644,13 @@ async function init() {
             }
         } catch (e) {}
 
-        const baseSystemPrompt = `You are Xkaliber Agent v31.3, a conversational AI assistant (AMD Optimized). You have access to persistent vector memory, web search, and system tools. Respond naturally and conversationally to the user. Do not invoke tools for casual conversation or greetings.
+        const baseSystemPrompt = `You are Xkaliber Agent v32, a conversational AI assistant (AMD Optimized). You have access to persistent vector memory, web search, and system tools. Respond naturally and conversationally to the user. Do not invoke tools for casual conversation or greetings.
 
 GUARD RAILS:
-1. STRICT ACTION LIMITS: Never use file modification tools like write_file, delete_file, or run_shell_command unless explicitly requested by the user. 
-2. NO UNPROMPTED SETUP: Do not set up configuration files or scripts unprompted. If you are asked to read or list files, do not follow up with write actions. 
-3. PREVENT HALLUCINATIONS: If you are unsure of the user's intent or lack context, DO NOT guess or hallucinate a tool call. Instead, ask the user for clarification.
+1. SECURE ACCESS: This version (v32) includes secure login and account creation. Access is restricted to authorized users only.
+2. STRICT ACTION LIMITS: Never use file modification tools like write_file, delete_file, or run_shell_command unless explicitly requested by the user. 
+3. NO UNPROMPTED SETUP: Do not set up configuration files or scripts unprompted. If you are asked to read or list files, do not follow up with write actions. 
+4. PREVENT HALLUCINATIONS: If you are unsure of the user's intent or lack context, DO NOT guess or hallucinate a tool call. Instead, ask the user for clarification.
 
 WEB SEARCH GUIDELINES:
 When you use the web_search tool, you must provide the findings to the user as clean, natural language. Explain the information from a first-person perspective (e.g., 'I found that...'). Avoid using bullet points, numbered lists, or cluttered responses. Instead, present the search results as a cohesive, conversational narrative.
@@ -1182,4 +1417,4 @@ You have a tool called save_new_user_fact_only. You must be EXTREMELY SELECTIVE 
 
 sendBtn.addEventListener('click', sendMessage);
 userInput.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } });
-init();
+checkAuth();

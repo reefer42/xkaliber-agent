@@ -1,8 +1,15 @@
-# Xkaliber Agent v31.3 🚀
+# Xkaliber Agent v32 🚀
 
 Xkaliber Agent is a modern, dark-themed autonomous agent desktop client built with Electron. It connects seamlessly to local **Ollama** and **LM Studio** neural models and equips them with system-level access, persistent vector memory, web scraping, and multimodal capabilities. 
 
 ## 🌟 Key Features
+
+### 🔐 Secure Access Control & Admin Panel (v32)
+*   **Mandatory Authentication:** Access to the application interface and backend proxy is completely restricted without a valid user account.
+*   **First-Run Admin Setup:** The first user to create an account automatically becomes the system Administrator.
+*   **Default-Deny for New Users:** Any subsequent accounts created will default to zero access, remaining pending until an admin approves them.
+*   **Admin Panel:** Administrators can dynamically toggle 'App Access' and 'Tool Access' privileges for any registered user.
+*   **Remote Security:** The web server strictly enforces session tokens, securing the application from unauthorized access when hosted on a network.
 
 ### 🧠 Neuro-Core (Intelligent Persistent Memory)
 The agent features a robust long-term memory engine powered by local embeddings.

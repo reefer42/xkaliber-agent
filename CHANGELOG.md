@@ -1,3 +1,15 @@
+# Xkaliber Agent v32 Changelog
+
+## [32.0.0] - 2026-05-05
+
+### Added
+- **Secure Authentication System:** Implemented a full user authentication system to control access to the application and backend APIs.
+  - **First-Run Setup:** The first user to register an account is automatically designated as the Administrator.
+  - **Default-Deny Access:** All subsequent new user registrations default to having zero access (both App and Tool access disabled) until approved by an admin.
+  - **Admin Control Panel:** Added a dedicated overlay for the Administrator to view registered users and dynamically toggle their App Access and Tool Access privileges.
+- **Remote Access Protection:** The web server (port 3000) now requires a valid session token for all API endpoints, preventing unauthorized remote usage via the mobile web view or external integrations.
+- **Secure Storage:** User passwords are encrypted using `bcryptjs` before being stored.
+
 # Xkaliber Agent v31.3 Changelog
 
 ## [31.3.0] - 2026-05-05

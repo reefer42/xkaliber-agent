@@ -31,7 +31,9 @@ const INVOKE_CHANNELS = [
     'perform-search',
     'mem-store', 'mem-query', 'mem-count', 'mem-clear',
     'export-session', 'import-session', 'get-host-url', 'get-env-info',
-    'get-gpu-telemetry', 'app-reset'
+    'get-gpu-telemetry', 'app-reset',
+    'auth-login', 'auth-register', 'auth-check', 'auth-logout', 'auth-has-users',
+    'auth-get-users', 'auth-update-user'
 ];
 
 const SEND_CHANNELS = ['tts-speak', 'tts-stop'];

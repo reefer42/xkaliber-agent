@@ -197,7 +197,64 @@ ipcMain.handle('open-file-dialog', async () => {
 
 // Persistent Session Memory Paths
 const userDataPath = app.getPath('userData');
-const historyFile = path.join(userDataPath, 'xkaliber_agent_session_v30.json');
+const AuthManager = require('./auth.js');
+const authManager = new AuthManager(userDataPath);
+
+ipcMain.handle('auth-login', async (event, { username, password }) => {
+    try {
+        const token = await authManager.login(username, password);
+        return { success: true, token };
+    } catch (e) {
+        return { success: false, error: e.message };
+    }
+});
+
+ipcMain.handle('auth-register', async (event, { username, password }) => {
+    try {
+        await authManager.register(username, password);
+        return { success: true };
+    } catch (e) {
+        return { success: false, error: e.message };
+    }
+});
+
+ipcMain.handle('auth-check', async (event, token) => {
+    const user = authManager.verifyToken(token);
+    if (!user) return { authenticated: false };
+    return { authenticated: true, user };
+});
+
+ipcMain.handle('auth-get-users', async (event, token) => {
+    const user = authManager.verifyToken(token);
+    if (!user || user.role !== 'admin') return { error: 'Unauthorized' };
+    try {
+        return { success: true, users: authManager.getAllUsers(user.username) };
+    } catch (e) {
+        return { error: e.message };
+    }
+});
+
+ipcMain.handle('auth-update-user', async (event, { token, targetUsername, permissions }) => {
+    const user = authManager.verifyToken(token);
+    if (!user || user.role !== 'admin') return { error: 'Unauthorized' };
+    try {
+        authManager.updateUserPermissions(user.username, targetUsername, permissions);
+        return { success: true };
+    } catch (e) {
+        return { error: e.message };
+    }
+});
+
+ipcMain.handle('auth-logout', async (event, token) => {
+    authManager.logout(token);
+    return { success: true };
+});
+
+ipcMain.handle('auth-has-users', async () => {
+    return { hasUsers: authManager.hasUsers() };
+});
+
+const historyFile = path.join(userDataPath, 'xkaliber_agent_session_v32.json');
 const legacyHistoryFile = path.join(userDataPath, 'xkaliber_agent_session_v29.json');
 
 ipcMain.handle('load-history', async () => {
@@ -810,9 +867,38 @@ const webServer = http.createServer((req, res) => {
     if (req.method === 'OPTIONS') return res.end();
 
     const url = req.url.split('?')[0];
+    const authHeader = req.headers['authorization'];
+    const token = authHeader ? authHeader.replace('Bearer ', '') : null;
+    const user = authManager.verifyToken(token);
+    const isAuthenticated = !!user;
+    const canUseApp = isAuthenticated && user.permissions.canUseApp;
+    const canUseTools = isAuthenticated && user.permissions.canUseTools;
+
+    // Public routes (login/register)
+    const isPublicApi = url === '/api/invoke' && req.method === 'POST' && (
+        req.headers['x-auth-action'] === 'login' || 
+        req.headers['x-auth-action'] === 'register' ||
+        req.headers['x-auth-action'] === 'has-users'
+    );
+
+    const publicFiles = ['/index.html', '/', '/renderer.js', '/preload.js', '/style.css', '/icon.png'];
+    const isPublicFile = publicFiles.includes(url) || url.endsWith('.css') || url.endsWith('.js') || url.endsWith('.png') || url.endsWith('.jpg');
+
+    if (!isAuthenticated && !isPublicApi && !isPublicFile) {
+        res.writeHead(401, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({ error: 'Unauthorized' }));
+    }
+    
+    if (isAuthenticated && !canUseApp && !isPublicApi && !isPublicFile) {
+        res.writeHead(403, { 'Content-Type': 'application/json' });
+        return res.end(JSON.stringify({ error: 'Account pending admin approval' }));
+    }
 
     // API Proxy for Ollama and LM Studio (Solves CORS and localhost binding issues)
     if (url.startsWith('/api/proxy/')) {
+        if (!canUseApp) {
+            res.writeHead(403); return res.end('Account pending admin approval');
+        }
         const targetUrl = req.headers['x-target-url'];
         if (!targetUrl) {
             res.writeHead(400); return res.end('Missing x-target-url header');
@@ -870,6 +956,20 @@ const webServer = http.createServer((req, res) => {
             try {
                 const { channel, args } = JSON.parse(body);
                 
+                // Special handling for auth actions via proxy
+                if (channel === 'auth-login' || channel === 'auth-register' || channel === 'auth-has-users') {
+                    // These are allowed even if not authenticated if they come with x-auth-action header
+                } else if (!isAuthenticated) {
+                    res.writeHead(401, { 'Content-Type': 'application/json' });
+                    return res.end(JSON.stringify({ error: 'Unauthorized' }));
+                } else if (!canUseApp && channel !== 'auth-check' && channel !== 'auth-logout') {
+                    res.writeHead(403, { 'Content-Type': 'application/json' });
+                    return res.end(JSON.stringify({ error: 'Account pending admin approval' }));
+                } else if (channel.startsWith('agent-') && !canUseTools) {
+                    res.writeHead(403, { 'Content-Type': 'application/json' });
+                    return res.end(JSON.stringify({ error: 'Tool usage restricted by Administrator' }));
+                }
+
                 // Special trap to let host know LMS server changed from web UI
                 if (channel === 'set-lms-url') {
                     lmsHostUrl = args[0];

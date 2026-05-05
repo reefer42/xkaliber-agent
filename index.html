@@ -667,6 +667,14 @@
             <span id="host-url-display" style="font-size: 0.85rem; color: var(--accent-color); font-weight: bold;">Loading...</span>
         </div>
 
+        <div id="auth-user-info" style="margin-bottom: 10px; padding: 5px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+            <span id="current-user-display" style="font-size: 0.8rem; color: var(--accent-color);">Not Logged In</span>
+            <div style="display: flex; gap: 5px;">
+                <button id="admin-panel-btn" class="test-btn" style="font-size: 0.6rem; color: #ffb703; border-color: #ffb703; display: none;">ADMIN</button>
+                <button id="logout-btn" class="test-btn" style="font-size: 0.6rem;">LOGOUT</button>
+            </div>
+        </div>
+
         <div>
             <!-- label hidden on mobile via CSS if needed, but keeping for now -->
             <select id="model-select">
@@ -777,6 +785,44 @@
                 <button id="send-btn" disabled>SEND</button>
                 <button id="stop-btn" style="display: none; border-color: #da3633; color: #da3633;">STOP</button>
             </div>
+        </div>
+    </div>
+
+    <!-- Login Overlay -->
+    <div id="login-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg-color); z-index: 2000; display: flex; justify-content: center; align-items: center; flex-direction: column;">
+        <div style="width: 300px; padding: 20px; background: var(--sidebar-bg); border: 1px solid var(--accent-color); border-radius: 8px; box-shadow: 0 0 20px var(--accent-dim);">
+            <h1 id="auth-title" style="text-align: center; margin-bottom: 20px; font-size: 1.2rem;">LOGIN REQUIRED</h1>
+            <div id="login-fields">
+                <label for="auth-username">USERNAME</label>
+                <input type="text" id="auth-username" style="width: 100%; background: var(--input-bg); color: var(--text-color); border: 1px solid var(--border-color); padding: 8px; border-radius: 4px; margin-bottom: 15px; outline: none; box-sizing: border-box;">
+                <label for="auth-password">PASSWORD</label>
+                <input type="password" id="auth-password" style="width: 100%; background: var(--input-bg); color: var(--text-color); border: 1px solid var(--border-color); padding: 8px; border-radius: 4px; margin-bottom: 20px; outline: none; box-sizing: border-box;">
+                <button id="login-btn" style="width: 100%; padding: 10px; margin-bottom: 10px;">SIGN IN</button>
+                <p id="auth-switch-text" style="text-align: center; font-size: 0.8rem; cursor: pointer; color: #8b949e;">New here? <span style="color: var(--accent-color);">Create account</span></p>
+            </div>
+            <div id="register-fields" style="display: none;">
+                <label for="reg-username">USERNAME</label>
+                <input type="text" id="reg-username" style="width: 100%; background: var(--input-bg); color: var(--text-color); border: 1px solid var(--border-color); padding: 8px; border-radius: 4px; margin-bottom: 15px; outline: none; box-sizing: border-box;">
+                <label for="reg-password">PASSWORD</label>
+                <input type="password" id="reg-password" style="width: 100%; background: var(--input-bg); color: var(--text-color); border: 1px solid var(--border-color); padding: 8px; border-radius: 4px; margin-bottom: 15px; outline: none; box-sizing: border-box;">
+                <label for="reg-password-confirm">CONFIRM PASSWORD</label>
+                <input type="password" id="reg-password-confirm" style="width: 100%; background: var(--input-bg); color: var(--text-color); border: 1px solid var(--border-color); padding: 8px; border-radius: 4px; margin-bottom: 20px; outline: none; box-sizing: border-box;">
+                <button id="register-submit-btn" style="width: 100%; padding: 10px; margin-bottom: 10px;">REGISTER</button>
+                <p id="reg-switch-text" style="text-align: center; font-size: 0.8rem; cursor: pointer; color: #8b949e;">Already have an account? <span style="color: var(--accent-color);">Sign In</span></p>
+            </div>
+            <p id="auth-error" style="color: #da3633; font-size: 0.8rem; text-align: center; margin-top: 10px; min-height: 1.2rem;"></p>
+        </div>
+    </div>
+
+    <!-- Admin Panel Overlay -->
+    <div id="admin-overlay" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 2000; display: none; justify-content: center; align-items: center; flex-direction: column;">
+        <div style="width: 400px; max-width: 90%; padding: 20px; background: var(--sidebar-bg); border: 1px solid #ffb703; border-radius: 8px; box-shadow: 0 0 20px rgba(255, 183, 3, 0.5); max-height: 80vh; overflow-y: auto;">
+            <h1 style="text-align: center; margin-bottom: 20px; font-size: 1.2rem; color: #ffb703; text-shadow: none;">ADMIN PANEL</h1>
+            <p style="font-size: 0.8rem; color: #8b949e; margin-bottom: 15px; text-align: center;">Manage User Privileges</p>
+            <div id="admin-user-list" style="display: flex; flex-direction: column; gap: 10px;">
+                <!-- User rows injected here -->
+            </div>
+            <button id="close-admin-btn" style="width: 100%; padding: 10px; margin-top: 20px; border-color: var(--border-color); color: var(--text-color);">CLOSE</button>
         </div>
     </div>
 
