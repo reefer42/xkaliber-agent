@@ -1,0 +1,11 @@
+Hardware: AMD CPU Detected. Applying performance tweaks...
+
+=========================================
+ Web Interface hosted at: http://192.168.12.63:3000
+=========================================
+
+Hardware: AMD GPU Detected (c5:00.0 Display controller: Advanced Micro Devices, Inc. [AMD/ATI] Strix [Radeon 880M / 890M] (rev c1))
+Hardware: Applying HSA_OVERRIDE_GFX_VERSION=11.0.0 for Strix Point compatibility.
+[46916:0427/134236.425000:ERROR:gl_surface_presentation_helper.cc(260)] GetVSyncParametersIfAvailable() failed for 1 times!
+[46873:0427/134236.772291:ERROR:command_buffer_proxy_impl.cc(319)] GPU state invalid after WaitForGetOffsetInRange.
+[46873:0427/134236.781229:ERROR:network_service_instance_impl.cc(601)] Network service crashed, restarting service.

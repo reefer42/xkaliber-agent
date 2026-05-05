@@ -1,0 +1,9 @@
+Package: xagent
+Version: 1.1.4
+Section: utils
+Priority: optional
+Architecture: amd64
+Depends: nodejs (>= 18.0.0)
+Maintainer: Legend
+Description: Xkaliber Agent CLI
+ A powerful autonomous CLI agent optimized for AMD and local Ollama.
