@@ -57,7 +57,7 @@ npm install
 npm start
 ```
 
-### 🚀 NVIDIA & Linux GPU Support
+### 🚀 NVIDIA & AMD GPU Support
 This version includes enhanced compatibility for NVIDIA hardware on Linux.
 
 
