@@ -1,6 +1,5 @@
 # Xkaliber Agent v32 🚀
 
-<img width="2560" height="1600" alt="Screenshot_20260506_115900" src="https://github.com/user-attachments/assets/ddf5260d-1c07-4b86-86e5-094fe93807b9" />
 
 this only supports ollama and lmstudio and you only need to download : ollama pull all-minilm
 
