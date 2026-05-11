@@ -40,6 +40,12 @@ The UI provides transparent execution logs (`⚡ Exec: function_name`). Availabl
 ### 🔊 Audio Uplink (TTS) & Multimodal
 *   **Piper TTS**: High-quality, offline Text-to-Speech integration (`en_US-lessac-medium`).
 *   **File Attachments**: Drop text files or images directly into the chat for context injection or vision-model analysis.
+**Secure Authentication System:** Implemented a full user authentication system to control access to the application and backend APIs.
+  - **First-Run Setup:** The first user to register an account is automatically designated as the Administrator.
+  - **Default-Deny Access:** All subsequent new user registrations default to having zero access (both App and Tool access disabled) until approved by an admin.
+  - **Admin Control Panel:** Added a dedicated overlay for the Administrator to view registered users and dynamically toggle their App Access and Tool Access privileges.
+- **Remote Access Protection:** The web server (port 3000) now requires a valid session token for all API endpoints, preventing unauthorized remote usage via the mobile web view or external integrations.
+- **Secure Storage:** User passwords are encrypted using `bcryptjs` before being stored.
 
 ## ⚙️ Development & Build Instructions
 
