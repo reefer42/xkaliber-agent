@@ -1,6 +1,6 @@
 {
   "name": "xkaliber-agent",
-  "version": "32.0.0",
+  "version": "33.0.0",
   "description": "Xkaliber Agent - Clean Web Remote",
   "main": "main.js",
   "scripts": {

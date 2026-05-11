@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Xkaliber Agent v31.2 // Guard Rails Enabled</title>
+    <title>Xkaliber Agent v33 // Web Speech API</title>
     <style>
         :root {
             --bg-color: #0d1117;
@@ -647,7 +647,7 @@
 </head>
 <body>
     <div id="sidebar">
-        <h1>XKALIBER AGENT</h1>
+        <h1>XKALIBER AGENT <span style="font-size: 0.7rem; color: var(--accent-dim);">v33</span></h1>
         
         <div class="control-group" style="margin-bottom: 10px;">
             <div class="toggle-row">
@@ -697,6 +697,12 @@
         </div>
 
         <div class="control-group">
+            <div class="toggle-row">
+                <label class="toggle-label" for="local-tts-toggle">
+                    <input type="checkbox" id="local-tts-toggle">
+                    LOCAL TTS (WEB)
+                </label>
+            </div>
             <div class="toggle-row">
                 <label class="toggle-label" for="memory-toggle">
                     <input type="checkbox" id="memory-toggle" checked>

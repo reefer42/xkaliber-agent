@@ -254,8 +254,8 @@ ipcMain.handle('auth-has-users', async () => {
     return { hasUsers: authManager.hasUsers() };
 });
 
-const historyFile = path.join(userDataPath, 'xkaliber_agent_session_v32.json');
-const legacyHistoryFile = path.join(userDataPath, 'xkaliber_agent_session_v29.json');
+const historyFile = path.join(userDataPath, 'xkaliber_agent_session_v33.json');
+const legacyHistoryFile = path.join(userDataPath, 'xkaliber_agent_session_v32.json');
 
 ipcMain.handle('load-history', async () => {
     try {
@@ -263,12 +263,12 @@ ipcMain.handle('load-history', async () => {
             const data = await fsPromises.readFile(historyFile, 'utf-8');
             return JSON.parse(data);
         } else if (fs.existsSync(legacyHistoryFile)) {
-            // Migrate from previous version (v29)
+            // Migrate from previous version
             const data = await fsPromises.readFile(legacyHistoryFile, 'utf-8');
             const history = JSON.parse(data);
             // Save it to the new path immediately to complete migration
             await fsPromises.writeFile(historyFile, JSON.stringify(history), 'utf-8');
-            console.log('Migrated legacy v29 history to v30.');
+            console.log('Migrated legacy v32 history to v33.');
             return history;
         }
     } catch (e) {

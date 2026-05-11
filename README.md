@@ -1,22 +1,8 @@
-# Xkaliber Agent v32 🚀
-
-<img width="2560" height="1600" alt="Screenshot_20260506_115900" src="https://github.com/user-attachments/assets/d41ecc3d-404b-4ad2-b4a4-81718e09a884" />
-
-demo video
-[![Watch the video](https://img.youtube.com/vi/cSRlGK5HWvI/maxresdefault.jpg)](https://www.youtube.com/watch?v=cSRlGK5HWvI)
-
-this only supports ollama and lmstudio and you only need to download : ollama pull all-minilm
+# Xkaliber Agent v31.3 🚀
 
 Xkaliber Agent is a modern, dark-themed autonomous agent desktop client built with Electron. It connects seamlessly to local **Ollama** and **LM Studio** neural models and equips them with system-level access, persistent vector memory, web scraping, and multimodal capabilities. 
-##recommended model :gwen3.5 and 3.6 
-## 🌟 Key Features
 
-### 🔐 Secure Access Control & Admin Panel (v32)
-*   **Mandatory Authentication:** Access to the application interface and backend proxy is completely restricted without a valid user account.
-*   **First-Run Admin Setup:** The first user to create an account automatically becomes the system Administrator.
-*   **Default-Deny for New Users:** Any subsequent accounts created will default to zero access, remaining pending until an admin approves them.
-*   **Admin Panel:** Administrators can dynamically toggle 'App Access' and 'Tool Access' privileges for any registered user.
-*   **Remote Security:** The web server strictly enforces session tokens, securing the application from unauthorized access when hosted on a network.
+## 🌟 Key Features
 
 ### 🧠 Neuro-Core (Intelligent Persistent Memory)
 The agent features a robust long-term memory engine powered by local embeddings.
@@ -62,7 +48,7 @@ npm install
 npm start
 ```
 
-### 🚀 NVIDIA & AMD GPU Support
+### 🚀 NVIDIA & Linux GPU Support
 This version includes enhanced compatibility for NVIDIA hardware on Linux.
 
 

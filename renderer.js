@@ -82,7 +82,24 @@ const memoryIndicator = document.getElementById('memory-indicator');
 const memoryCountBadge = document.getElementById('memory-count-badge');
 const clearBtn = document.getElementById('clear-btn');
 const ttsToggle = document.getElementById('tts-toggle');
+const localTtsToggle = document.getElementById('local-tts-toggle');
 const testAudioBtn = document.getElementById('test-audio-btn');
+
+function localSpeak(text) {
+    if (!window.speechSynthesis) {
+        addMessage('system', 'Web Speech API (TTS) is not supported in this browser.');
+        return;
+    }
+    // Cancel any ongoing speech
+    window.speechSynthesis.cancel();
+    
+    const utterance = new SpeechSynthesisUtterance(text);
+    // Use a slightly more natural rate
+    utterance.rate = 1.0;
+    utterance.pitch = 1.0;
+    
+    window.speechSynthesis.speak(utterance);
+}
 const netrunnerToggle = document.getElementById('netrunner-toggle');
 const exportBtn = document.getElementById('export-btn');
 const importBtn = document.getElementById('import-btn');
@@ -209,7 +226,12 @@ if (closeQr) {
 // --- TTS controls ---
 if (testAudioBtn) {
     testAudioBtn.addEventListener('click', () => {
-        window.api.send('tts-speak', 'Xkaliber Agent audio uplink is operational.');
+        const msg = 'Xkaliber Agent audio uplink is operational.';
+        if (localTtsToggle?.checked) {
+            localSpeak(msg);
+        } else {
+            window.api.send('tts-speak', msg);
+        }
     });
 }
 
@@ -644,10 +666,10 @@ async function init() {
             }
         } catch (e) {}
 
-        const baseSystemPrompt = `You are Xkaliber Agent v32, a conversational AI assistant (AMD Optimized). You have access to persistent vector memory, web search, and system tools. Respond naturally and conversationally to the user. Do not invoke tools for casual conversation or greetings.
+        const baseSystemPrompt = `You are Xkaliber Agent v33, a conversational AI assistant (AMD Optimized). You have access to persistent vector memory, web search, and system tools. Respond naturally and conversationally to the user. Do not invoke tools for casual conversation or greetings.
 
 GUARD RAILS:
-1. SECURE ACCESS: This version (v32) includes secure login and account creation. Access is restricted to authorized users only.
+1. SECURE ACCESS: This version (v33) includes secure login and account creation. Access is restricted to authorized users only.
 2. STRICT ACTION LIMITS: Never use file modification tools like write_file, delete_file, or run_shell_command unless explicitly requested by the user. 
 3. NO UNPROMPTED SETUP: Do not set up configuration files or scripts unprompted. If you are asked to read or list files, do not follow up with write actions. 
 4. PREVENT HALLUCINATIONS: If you are unsure of the user's intent or lack context, DO NOT guess or hallucinate a tool call. Instead, ask the user for clarification.
@@ -1017,7 +1039,7 @@ My Query: ${text}`;
                 }
             } catch (e) {}
             
-            const systemPrompt = `You are Xkaliber Agent v31.3, a conversational AI assistant (AMD Optimized). You have access to persistent vector memory, web search, and system tools. Respond naturally and conversationally to the user. Do not invoke tools for casual conversation or greetings.
+            const systemPrompt = `You are Xkaliber Agent v33, a conversational AI assistant (AMD Optimized). You have access to persistent vector memory, web search, and system tools. Respond naturally and conversationally to the user. Do not invoke tools for casual conversation or greetings.
 
 GUARD RAILS:
 1. STRICT ACTION LIMITS: Never use file modification tools like write_file, delete_file, or run_shell_command unless explicitly requested by the user. 
@@ -1368,9 +1390,16 @@ You have a tool called save_new_user_fact_only. You must be EXTREMELY SELECTIVE 
 
                 chatHistory.push({ role: 'assistant', content: fullContent });
                 window.api.invoke('save-history', chatHistory);
-                if (ttsToggle?.checked && fullContent) {
-                    window.api.send('tts-speak', stripMarkdown(fullContent));
+                
+                if (fullContent) {
+                    const cleanText = stripMarkdown(fullContent);
+                    if (localTtsToggle?.checked) {
+                        localSpeak(cleanText);
+                    } else if (ttsToggle?.checked) {
+                        window.api.send('tts-speak', cleanText);
+                    }
                 }
+                
                 finished = true;
                 
                 trace.addStep('output.finalize', 'output', 'ok', 'DONE', 0);
