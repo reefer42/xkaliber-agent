@@ -1243,7 +1243,7 @@ You have a tool called save_new_user_fact_only. You must be EXTREMELY SELECTIVE 
 
             const readWithTimeout = (reader, timeoutMs) => {
                 return new Promise((resolve, reject) => {
-                    const timeoutId = setTimeout(() => reject(new Error('Stream timeout: Uplink is hung')), timeoutMs);
+                    const timeoutId = setTimeout(() => reject(new Error('Stream timeout: Uplink is hung. VRAM may be heavily congested.')), timeoutMs);
                     reader.read().then((result) => {
                         clearTimeout(timeoutId);
                         resolve(result);
@@ -1256,7 +1256,7 @@ You have a tool called save_new_user_fact_only. You must be EXTREMELY SELECTIVE 
 
             let leftover = '';
             while (true) {
-                const { done, value } = await readWithTimeout(reader, 120000);
+                const { done, value } = await readWithTimeout(reader, 300000); // 5 minute chunk timeout
                 if (done) break;
                 
                 const chunk = decoder.decode(value);
@@ -1396,9 +1396,8 @@ You have a tool called save_new_user_fact_only. You must be EXTREMELY SELECTIVE 
                     }
                     chatHistory.push({ role: 'tool', content: String(result), tool_call_id: t.id });
                 }
-
                 botDiv.innerHTML = `<span class="loading-pulse">Step ${turnCount} complete. Thinking...</span><br><br>${existingText ? existingText + '<br><br>' : ''}${window.markedParse(fullContent)}`;
-                await new Promise(r => setTimeout(r, 1000)); // System cool-down
+                await new Promise(r => setTimeout(r, 1500)); // Increased VRAM relief delay
             } else {
                 window._lastToolCallSignature = null; // Clear on success
                 // BUG FIX: If model is silent after tool results, nudge it.
