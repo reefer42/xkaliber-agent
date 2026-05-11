@@ -642,7 +642,23 @@ async function init() {
             if (urlDispContainer) urlDispContainer.style.display = 'none';
         } else {
             const hostInfo = await window.api.invoke('get-host-url');
-            if (hostInfo && hostInfo.url && urlDisp) urlDisp.textContent = hostInfo.url;
+            if (hostInfo && urlDisp) {
+                let displayHtml = `Local: ${hostInfo.url}`;
+                if (hostInfo.remoteUrl) {
+                    displayHtml += ` | Remote: <a href="${hostInfo.remoteUrl}" target="_blank" style="color: #00ff00;">${hostInfo.remoteUrl}</a>`;
+                } else {
+                    displayHtml += ` | Remote: (Starting...)`;
+                    // Refresh every few seconds until remoteUrl is available
+                    const refreshInterval = setInterval(async () => {
+                        const updatedInfo = await window.api.invoke('get-host-url');
+                        if (updatedInfo.remoteUrl) {
+                            urlDisp.innerHTML = `Local: ${updatedInfo.url} | Remote: <a href="${updatedInfo.remoteUrl}" target="_blank" style="color: #00ff00;">${updatedInfo.remoteUrl}</a>`;
+                            clearInterval(refreshInterval);
+                        }
+                    }, 5000);
+                }
+                urlDisp.innerHTML = displayHtml;
+            }
         }
     } catch(e) {}
 

@@ -1,5 +1,6 @@
 const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
+const os = require('os');
 const { spawn, exec, execSync } = require('child_process');
 const fs = require('fs');
 const fsPromises = require('fs').promises;
@@ -349,9 +350,17 @@ ipcMain.handle('agent-run-command', async (event, command) => {
     });
 });
 
+function expandTilde(filepath) {
+    if (filepath.startsWith('~/')) {
+        return path.join(os.homedir(), filepath.slice(2));
+    }
+    return filepath;
+}
+
 ipcMain.handle('agent-read-file', async (event, filepath) => {
     try {
-        const content = await fsPromises.readFile(filepath, 'utf-8');
+        const expandedPath = expandTilde(filepath);
+        const content = await fsPromises.readFile(expandedPath, 'utf-8');
         return { content };
     } catch (error) {
         return { error: error.message };
@@ -360,7 +369,8 @@ ipcMain.handle('agent-read-file', async (event, filepath) => {
 
 ipcMain.handle('agent-write-file', async (event, filepath, content) => {
     try {
-        await fsPromises.writeFile(filepath, content, 'utf-8');
+        const expandedPath = expandTilde(filepath);
+        await fsPromises.writeFile(expandedPath, content, 'utf-8');
         return { success: true };
     } catch (error) {
         return { error: error.message };
@@ -369,11 +379,12 @@ ipcMain.handle('agent-write-file', async (event, filepath, content) => {
 
 ipcMain.handle('agent-delete-file', async (event, filepath) => {
     try {
-        const stats = await fsPromises.stat(filepath);
+        const expandedPath = expandTilde(filepath);
+        const stats = await fsPromises.stat(expandedPath);
         if (stats.isDirectory()) {
-            await fsPromises.rm(filepath, { recursive: true, force: true });
+            await fsPromises.rm(expandedPath, { recursive: true, force: true });
         } else {
-            await fsPromises.unlink(filepath);
+            await fsPromises.unlink(expandedPath);
         }
         return { success: true };
     } catch (error) {
@@ -383,7 +394,8 @@ ipcMain.handle('agent-delete-file', async (event, filepath) => {
 
 ipcMain.handle('agent-list-directory', async (event, dirpath) => {
     try {
-        const files = await fsPromises.readdir(dirpath, { withFileTypes: true });
+        const expandedPath = expandTilde(dirpath);
+        const files = await fsPromises.readdir(expandedPath, { withFileTypes: true });
         const list = files.map(f => `${f.isDirectory() ? '[DIR] ' : '[FILE]'} ${f.name}`);
         return { files: list.join('\n') };
     } catch (error) {
@@ -692,7 +704,7 @@ ipcMain.handle('get-gpu-telemetry', async () => {
     isTelemetryInProgress = true;
 
     return new Promise((resolve) => {
-        const os = require('os');
+        // os module is already required at the top
         const systemRam = {
             total: Math.round(os.totalmem() / 1024 / 1024),
             free: Math.round(os.freemem() / 1024 / 1024),
@@ -841,7 +853,7 @@ ipcMain.handle('mem-clear', async () => {
 
 // --- Web Hosting (Mobile Access) ---
 const http = require('http');
-const os = require('os');
+// os module is already required at the top
 const WEB_PORT = 3000;
 
 // Host state for LM Studio proxying
@@ -1012,14 +1024,69 @@ const webServer = http.createServer((req, res) => {
         });
 });
 
+let remoteUrl = null;
+async function startCloudflareTunnel() {
+    const cfPath = path.join(app.getPath('userData'), 'cloudflared');
+    const platform = process.platform;
+    const arch = process.arch;
+    
+    let downloadUrl = "";
+    if (platform === 'linux' && arch === 'x64') {
+        downloadUrl = "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64";
+    } else if (platform === 'win32' && arch === 'x64') {
+        downloadUrl = "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-windows-amd64.exe";
+    }
+
+    if (!fs.existsSync(cfPath) && downloadUrl) {
+        console.log('Downloading cloudflared for remote hosting...');
+        try {
+            if (platform === 'linux') {
+                execSync(`wget -O "${cfPath}" "${downloadUrl}"`);
+                fs.chmodSync(cfPath, 0o755);
+            } else {
+                // Fallback or skip for other platforms in this specific environment
+            }
+            console.log('cloudflared downloaded successfully.');
+        } catch (err) {
+            console.error('Failed to download cloudflared:', err);
+            return;
+        }
+    }
+
+    if (fs.existsSync(cfPath)) {
+        console.log('Starting Cloudflare Tunnel...');
+        const cfProcess = spawn(cfPath, ['tunnel', '--url', `http://localhost:${WEB_PORT}`]);
+        
+        cfProcess.stderr.on('data', (data) => {
+            const output = data.toString();
+            const match = output.match(/https:\/\/[a-z0-9-]+\.trycloudflare\.com/);
+            if (match && !remoteUrl) {
+                remoteUrl = match[0];
+                console.log('\n=========================================');
+                console.log(' Remote Access URL: ' + remoteUrl);
+                console.log('=========================================\n');
+            }
+        });
+
+        cfProcess.on('close', (code) => {
+            console.log(`cloudflared process exited with code ${code}`);
+            remoteUrl = null;
+        });
+    }
+}
+
 webServer.listen(WEB_PORT, '0.0.0.0', () => {
     console.log('\n=========================================');
     console.log(' Web Interface hosted at: http://' + getLocalIP() + ':' + WEB_PORT);
     console.log('=========================================\n');
+    startCloudflareTunnel().catch(console.error);
 });
 
 ipcMain.handle('get-host-url', async () => {
-    return { url: 'http://' + getLocalIP() + ':' + WEB_PORT };
+    return { 
+        url: 'http://' + getLocalIP() + ':' + WEB_PORT,
+        remoteUrl: remoteUrl
+    };
 });
 
 ipcMain.handle('get-env-info', async () => {

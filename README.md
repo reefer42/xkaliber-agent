@@ -1,8 +1,13 @@
-# Xkaliber Agent v34 🚀
+# Xkaliber Agent v35 🚀
 
 Xkaliber Agent is a modern, dark-themed autonomous agent desktop client built with Electron. It connects seamlessly to local **Ollama** and **LM Studio** neural models and equips them with system-level access, persistent vector memory, web scraping, and multimodal capabilities. 
 
 ## 🌟 Key Features
+
+### 🌐 Cloudflare Remote Access (v35)
+Easily access your local Xkaliber Agent from anywhere.
+*   **Automatic Tunnels**: The agent automatically downloads and configures `cloudflared` to generate a secure, ephemeral `.trycloudflare.com` URL on startup.
+*   **Standalone Support**: Headless Linux/CLI users can run `node standalone-server.js` to instantly expose the web UI to the public internet securely without the Electron GUI.
 
 ### 🤖 Autonomous "Plan-Execute-Verify" Workflow (v34)
 The agent now supports a sophisticated multi-turn autonomous loop designed for complex system tasks and research.
@@ -40,12 +45,6 @@ The UI provides transparent execution logs (`⚡ Exec: function_name`). Availabl
 ### 🔊 Audio Uplink (TTS) & Multimodal
 *   **Piper TTS**: High-quality, offline Text-to-Speech integration (`en_US-lessac-medium`).
 *   **File Attachments**: Drop text files or images directly into the chat for context injection or vision-model analysis.
-**Secure Authentication System:** Implemented a full user authentication system to control access to the application and backend APIs.
-  - **First-Run Setup:** The first user to register an account is automatically designated as the Administrator.
-  - **Default-Deny Access:** All subsequent new user registrations default to having zero access (both App and Tool access disabled) until approved by an admin.
-  - **Admin Control Panel:** Added a dedicated overlay for the Administrator to view registered users and dynamically toggle their App Access and Tool Access privileges.
-- **Remote Access Protection:** The web server (port 3000) now requires a valid session token for all API endpoints, preventing unauthorized remote usage via the mobile web view or external integrations.
-- **Secure Storage:** User passwords are encrypted using `bcryptjs` before being stored.
 
 ## ⚙️ Development & Build Instructions
 

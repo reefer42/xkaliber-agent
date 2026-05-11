@@ -1,7 +1,57 @@
 const http = require('http');
 const https = require('https');
+const path = require('path');
+const fs = require('fs');
+const { spawn, execSync } = require('child_process');
 
 const WEB_PORT = 3000;
+
+let remoteUrl = null;
+async function startCloudflareTunnel() {
+    const cfPath = path.join(__dirname, 'cloudflared');
+    const platform = process.platform;
+    const arch = process.arch;
+    
+    let downloadUrl = "";
+    if (platform === 'linux' && arch === 'x64') {
+        downloadUrl = "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64";
+    }
+
+    if (!fs.existsSync(cfPath) && downloadUrl) {
+        console.log('Downloading cloudflared for remote hosting...');
+        try {
+            if (platform === 'linux') {
+                execSync(`wget -O "${cfPath}" "${downloadUrl}"`);
+                fs.chmodSync(cfPath, 0o755);
+            }
+            console.log('cloudflared downloaded successfully.');
+        } catch (err) {
+            console.error('Failed to download cloudflared:', err);
+            return;
+        }
+    }
+
+    if (fs.existsSync(cfPath)) {
+        console.log('Starting Cloudflare Tunnel...');
+        const cfProcess = spawn(cfPath, ['tunnel', '--url', `http://localhost:${WEB_PORT}`]);
+        
+        cfProcess.stderr.on('data', (data) => {
+            const output = data.toString();
+            const match = output.match(/https:\/\/[a-z0-9-]+\.trycloudflare\.com/);
+            if (match && !remoteUrl) {
+                remoteUrl = match[0];
+                console.log('\n=========================================');
+                console.log(' Remote Access URL: ' + remoteUrl);
+                console.log('=========================================\n');
+            }
+        });
+
+        cfProcess.on('close', (code) => {
+            console.log(`cloudflared process exited with code ${code}`);
+            remoteUrl = null;
+        });
+    }
+}
 
 const webServer = http.createServer((req, res) => {
     // CORS Headers for Mobile Web Mode
@@ -66,4 +116,5 @@ const webServer = http.createServer((req, res) => {
 
 webServer.listen(WEB_PORT, '0.0.0.0', () => {
     console.log('Standalone Web Interface hosted at: http://0.0.0.0:' + WEB_PORT);
+    startCloudflareTunnel().catch(console.error);
 });

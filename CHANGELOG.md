@@ -1,3 +1,15 @@
+# Xkaliber Agent v35 Changelog
+
+## [35.0.0] - 2026-05-11
+
+### Added
+- **Cloudflare Tunnel Integration**: Implemented secure remote access out-of-the-box. The application now automatically downloads `cloudflared` and sets up an ephemeral tunnel, exposing a public URL so users can access their local agent from anywhere.
+- **Standalone Server Enhancements**: The headless `standalone-server.js` now fully supports Cloudflare Tunnel generation for easy CLI hosting.
+
+### Fixed
+- **Agent Path Expansion**: Fixed an issue where the embedded agent's internal filesystem tools (`read_file`, `write_file`, `delete_file`, `list_directory`) failed when parsing paths containing the tilde (`~`) character. Added proper resolution to the user's home directory.
+- **Packaging Crash**: Resolved a `SyntaxError` caused by a duplicate `os` module declaration that prevented `.AppImage` and `.deb` builds from launching.
+
 # Xkaliber Agent v34.2 Changelog
 
 ## [34.2.0] - 2026-05-10
