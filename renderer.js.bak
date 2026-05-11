@@ -1039,20 +1039,12 @@ My Query: ${text}`;
                 }
             } catch (e) {}
             
-            const systemPrompt = `You are Xkaliber Agent v34, a conversational AI assistant (AMD Optimized). You have access to persistent vector memory, web search, and system tools. Respond naturally and conversationally to the user. Do not invoke tools for casual conversation or greetings.
-
-AUTONOMOUS WORKFLOW:
-You support a 'Plan-Execute-Verify' loop. For complex requests:
-1. Use \`task_begin\` to state your goal and a multi-step plan.
-2. Execute the steps sequentially using appropriate tools.
-3. After each step, analyze the output and decide the next action.
-4. Once finished, use \`task_complete\` to summarize and verify the results before responding to the user.
+            const systemPrompt = `You are Xkaliber Agent v33, a conversational AI assistant (AMD Optimized). You have access to persistent vector memory, web search, and system tools. Respond naturally and conversationally to the user. Do not invoke tools for casual conversation or greetings.
 
 GUARD RAILS:
-1. SECURE ACCESS: This version (v34) includes secure login and account creation. Access is restricted to authorized users only.
-2. STRICT ACTION LIMITS: Never use file modification tools like write_file, delete_file, or run_shell_command unless explicitly requested by the user. 
-3. NO UNPROMPTED SETUP: Do not set up configuration files or scripts unprompted. If you are asked to read or list files, do not follow up with write actions. 
-4. PREVENT HALLUCINATIONS: If you are unsure of the user's intent or lack context, DO NOT guess or hallucinate a tool call. Instead, ask the user for clarification.
+1. STRICT ACTION LIMITS: Never use file modification tools like write_file, delete_file, or run_shell_command unless explicitly requested by the user. 
+2. NO UNPROMPTED SETUP: Do not set up configuration files or scripts unprompted. If you are asked to read or list files, do not follow up with write actions. 
+3. PREVENT HALLUCINATIONS: If you are unsure of the user's intent or lack context, DO NOT guess or hallucinate a tool call. Instead, ask the user for clarification.
 
 WEB SEARCH GUIDELINES:
 When you use the web_search tool, you must provide the findings to the user as clean, natural language. Explain the information from a first-person perspective (e.g., 'I found that...'). Avoid using bullet points, numbered lists, or cluttered responses. Instead, present the search results as a cohesive, conversational narrative.
@@ -1073,14 +1065,9 @@ You have a tool called save_new_user_fact_only. You must be EXTREMELY SELECTIVE 
         
         trace.addStep('routing.selected_capability', 'routing', 'ok', 'ROUTE_OK', 0, model);
 
-        while (!finished && turnCount < 20) {
+        while (!finished && turnCount < 10) {
             turnCount++;
             let body, endpoint;
-            
-            // Provide visual feedback for the current step
-            if (turnCount > 1) {
-                 botDiv.innerHTML = `<span class="loading-pulse">Thinking (Step ${turnCount}/20)...</span>`;
-            }
             
             let activeTools = [];
             if (agentEnabled) {
@@ -1233,13 +1220,7 @@ You have a tool called save_new_user_fact_only. You must be EXTREMELY SELECTIVE 
             const decoder = new TextDecoder();
             let fullContent = '';
             let toolCalls = null;
-            // Provide visual feedback for the current step while keeping previous output
-            const existingText = botDiv.innerHTML.replace(/<span class="loading-pulse">.*?<\/span><br><br>/g, '').trim();
-            if (existingText && !existingText.includes('Thinking...')) {
-                 botDiv.innerHTML = `<span class="loading-pulse">Thinking (Step ${turnCount}/20)...</span><br><br>${existingText}`;
-            } else {
-                 botDiv.innerHTML = `<span class="loading-pulse">Thinking (Step ${turnCount}/20)...</span>`;
-            }
+            botDiv.innerHTML = '';
 
             const readWithTimeout = (reader, timeoutMs) => {
                 return new Promise((resolve, reject) => {
@@ -1277,7 +1258,7 @@ You have a tool called save_new_user_fact_only. You must be EXTREMELY SELECTIVE 
                                 const delta = json.choices?.[0]?.delta;
                                 if (delta?.content) {
                                     fullContent += delta.content;
-                                    botDiv.innerHTML = `<span class="loading-pulse">Thinking (Step ${turnCount}/20)...</span><br><br>${existingText ? existingText + '<br><br>' : ''}${window.markedParse(fullContent)}`;
+                                    botDiv.innerHTML = window.markedParse(fullContent);
                                 }
                                 if (delta?.tool_calls) {
                                     if (!toolCalls) toolCalls = [];
@@ -1308,7 +1289,7 @@ You have a tool called save_new_user_fact_only. You must be EXTREMELY SELECTIVE 
                             const json = JSON.parse(trimmed);
                             if (json.message?.content) {
                                 fullContent += json.message.content;
-                                botDiv.innerHTML = `<span class="loading-pulse">Thinking (Step ${turnCount}/20)...</span><br><br>${existingText ? existingText + '<br><br>' : ''}${window.markedParse(fullContent)}`;
+                                botDiv.innerHTML = window.markedParse(fullContent);
                             }
                             if (json.message?.tool_calls?.length > 0) {
                                 toolCalls = json.message.tool_calls.map(tc => {
@@ -1397,8 +1378,7 @@ You have a tool called save_new_user_fact_only. You must be EXTREMELY SELECTIVE 
                     chatHistory.push({ role: 'tool', content: String(result), tool_call_id: t.id });
                 }
 
-                botDiv.innerHTML = `<span class="loading-pulse">Step ${turnCount} complete. Thinking...</span><br><br>${existingText ? existingText + '<br><br>' : ''}${window.markedParse(fullContent)}`;
-                await new Promise(r => setTimeout(r, 1000)); // System cool-down
+                botDiv.innerHTML = '<span class="loading-pulse">Processing...</span>';
             } else {
                 window._lastToolCallSignature = null; // Clear on success
                 // BUG FIX: If model is silent after tool results, nudge it.
@@ -1410,8 +1390,6 @@ You have a tool called save_new_user_fact_only. You must be EXTREMELY SELECTIVE 
 
                 chatHistory.push({ role: 'assistant', content: fullContent });
                 window.api.invoke('save-history', chatHistory);
-                
-                botDiv.innerHTML = `${existingText ? existingText + '<br><br>' : ''}${window.markedParse(fullContent)}`;
                 
                 if (fullContent) {
                     const cleanText = stripMarkdown(fullContent);

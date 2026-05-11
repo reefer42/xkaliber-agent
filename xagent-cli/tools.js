@@ -51,6 +51,36 @@ const AGENT_TOOLS = [
             description: "Search long-term vector memory to recall past learned knowledge, user preferences, or facts. USE THIS TOOL actively if you are asked a question about the user or past context that you do not know the answer to. Formulate a targeted search query.",
             parameters: { type: "object", properties: { query: { type: "string", description: "The specific topic or keywords to search for in memory." } }, required: ["query"] }
         }
+    },
+    {
+        type: "function",
+        function: {
+            name: "task_begin",
+            description: "Initialize a multi-step autonomous task. Use this to state your high-level goal and the specific steps you plan to take. This helps you maintain focus during long tool-chains.",
+            parameters: { 
+                type: "object", 
+                properties: { 
+                    goal: { type: "string", description: "The final objective of the task." },
+                    plan: { type: "array", items: { type: "string" }, description: "A list of sequential steps to achieve the goal." }
+                }, 
+                required: ["goal", "plan"] 
+            }
+        }
+    },
+    {
+        type: "function",
+        function: {
+            name: "task_complete",
+            description: "Signal that the autonomous task is finished. You must provide a summary of your actions and verify that the initial goal was met.",
+            parameters: { 
+                type: "object", 
+                properties: { 
+                    summary: { type: "string", description: "A concise summary of what was accomplished." },
+                    verification: { type: "string", description: "Evidence or reasoning that the goal has been successfully achieved." }
+                }, 
+                required: ["summary", "verification"] 
+            }
+        }
     }
 ];
 
@@ -92,6 +122,12 @@ function truncate(text) {
 }
 
 async function executeTool(name, args) {
+    if (name === 'task_begin') {
+        return `Task started. Goal: ${args.goal}. Plan: ${args.plan.join(' -> ')}. Proceed with the first step.`;
+    }
+    if (name === 'task_complete') {
+        return `Task completed. Summary: ${args.summary}. Verification: ${args.verification}. You may now provide the final response to the user.`;
+    }
     if (name === 'web_search') {
         return await performWebSearch(args.query);
     }

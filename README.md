@@ -1,8 +1,16 @@
-# Xkaliber Agent v31.3 🚀
+# Xkaliber Agent v34 🚀
 
 Xkaliber Agent is a modern, dark-themed autonomous agent desktop client built with Electron. It connects seamlessly to local **Ollama** and **LM Studio** neural models and equips them with system-level access, persistent vector memory, web scraping, and multimodal capabilities. 
 
 ## 🌟 Key Features
+
+### 🤖 Autonomous "Plan-Execute-Verify" Workflow (v34)
+The agent now supports a sophisticated multi-turn autonomous loop designed for complex system tasks and research.
+*   **Contextual Tool-Chaining**: Instead of linear execution, the agent uses a `task_begin` tool to formally declare a high-level goal and a structured multi-step plan.
+*   **Plan-Execute-Verify**: The agent executes steps sequentially, analyzes outputs, and automatically decides the next action. It finishes with a `task_complete` call to summarize results and verify the goal was achieved.
+*   **Extended Reasoning**: Supports up to **20 autonomous turns** per user message, providing the depth needed for multi-file audits, deep research, or complex troubleshooting.
+*   **System Stability**: Built-in 1-second "cool-down" delays between turns prevent VRAM/CPU exhaustion and system lockups during long reasoning chains.
+*   **Live Feedback**: The UI remains interactive and transparent, showing exactly which step the agent is on (`Thinking (Step X/20)...`) without clearing previous context.
 
 ### 🧠 Neuro-Core (Intelligent Persistent Memory)
 The agent features a robust long-term memory engine powered by local embeddings.

@@ -1,14 +1,17 @@
-# Xkaliber Agent v31.3 Changelog
+# Xkaliber Agent v34 Changelog
 
-## [31.3.0] - 2026-05-05
+## [34.0.0] - 2026-05-10
 
-### Fixed
-- **Embedding Model Hangs:** Resolved a critical issue where the application would hang when "Persistent Memory" was enabled in low VRAM scenarios.
-  - **Forced CPU Embeddings:** The `all-minilm` embedding model is now strictly forced to run on the CPU (`num_gpu: 0`), preventing VRAM contention with the primary model.
-  - **Aggressive Timeouts:** Reduced embedding request timeouts from 45s to 15s to ensure the UI remains responsive even if the backend is slow.
-  - **Optimized Keep-Alive:** Implemented a 5-minute `keep_alive` for embeddings to balance memory usage and performance.
+### Added
+- **Autonomous "Plan-Execute-Verify" Workflow**: Implemented a robust multi-turn autonomous loop for complex tasks.
+  - **Strategic Task Tools**: Added `task_begin` for formal goal setting/planning and `task_complete` for action summarization/verification.
+  - **Extended Turn Limits**: Increased the autonomous loop capacity to **20 turns** (GUI) and **15 turns** (CLI) per user message.
+  - **Improved Feedback Loop**: The UI now provides persistent visual feedback (e.g., "Thinking (Step 3/20)...") and preserves previous output while the agent iterates.
+  - **Stability Cool-downs**: Added a 1-second delay between autonomous turns to prevent VRAM/CPU exhaustion and improve system stability.
+- **Neural-Core v34 Integration**: Updated the core system prompt with explicit autonomous workflow directives and improved guard rails for AMD-optimized inference.
+- **Migration System**: Automated session history migration from v33 to v34.
 
-# Xkaliber Agent v31.2 Changelog
+# Xkaliber Agent v33 Changelog
 
 ## [31.2.0] - 2026-05-01
 
