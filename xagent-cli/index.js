@@ -179,7 +179,7 @@ async function chat(promptText) {
 
         try {
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 minute timeout
+            const timeoutId = setTimeout(() => controller.abort(), 360000); // 6 minute timeout for CLI
 
             const res = await fetch(`${OLLAMA_API}/chat`, {
                 method: 'POST',
@@ -223,6 +223,8 @@ async function chat(promptText) {
                         chatHistory.push({ role: 'tool', content: `Error: ${e.message}` });
                     }
                 }
+                // VRAM Relief Delay
+                await new Promise(r => setTimeout(r, 1500));
             } else {
                 chatHistory.push(msg);
                 finalContent = msg.content;

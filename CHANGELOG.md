@@ -1,3 +1,13 @@
+# Xkaliber Agent v34.2 Changelog
+
+## [34.2.0] - 2026-05-10
+
+### Fixed
+- **Complex Task Timeouts**: Resolved "Model timed out" errors during high-intensity autonomous tasks (e.g., game generation).
+  - **Extended Timeouts**: Increased streaming chunk timeout from 2 minutes to **5 minutes** (GUI) and **6 minutes** (CLI).
+  - **Enhanced VRAM Relief**: Increased the cooldown delay between autonomous turns to **1.5 seconds** to allow more breathing room for local hardware.
+  - **Dynamic Timeout Reset**: Refined the streaming logic to reset the timeout watchdog upon every received chunk, ensuring slow but active generation isn't interrupted.
+
 # Xkaliber Agent v34 Changelog
 
 ## [34.0.0] - 2026-05-10
