@@ -129,6 +129,15 @@ const SYSTEM_PROMPT = "You are xagent, a powerful CLI autonomous agent (AMD Opti
 
 const { PipelineTrace, compileExplanation, generateReport } = require('./ghosttrace/index.js');
 
+function pruneHistory() {
+    if (chatHistory.length > 12) {
+        const system = chatHistory[0]; // Usually system prompt
+        const recent = chatHistory.slice(-10);
+        chatHistory = [system, ...recent];
+        console.log(`\x1b[33m[Resource Manager]: History pruned to ${chatHistory.length} messages.\x1b[0m`);
+    }
+}
+
 async function chat(promptText) {
     const trace = new PipelineTrace();
     trace.addStep('input.received', 'input', 'ok', 'PROMPT_RECEIVED', 0);
@@ -158,12 +167,13 @@ async function chat(promptText) {
 
     let finished = false;
     let loopCount = 0;
-    const MAX_LOOPS = 5;
+    const MAX_LOOPS = 20; // Increased to match UI
     
     trace.addStep('routing.selected_capability', 'routing', 'ok', 'MODEL_SELECTED', 0, currentModel);
 
     let finalContent = "";
     while (!finished) {
+        pruneHistory();
         startSpinner('Thinking...');
         const startGen = Date.now();
         

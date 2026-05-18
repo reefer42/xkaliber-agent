@@ -7,6 +7,45 @@ const fsPromises = require('fs').promises;
 const { Client, LocalAuth } = require('whatsapp-web.js');
 const qrcode = require('qrcode');
 
+// Resource Monitoring System
+let resourceMonitorInterval = null;
+function startResourceMonitor(win) {
+    if (resourceMonitorInterval) clearInterval(resourceMonitorInterval);
+    
+    resourceMonitorInterval = setInterval(async () => {
+        if (!win || win.isDestroyed()) return;
+        
+        try {
+            const memoryInfo = await process.getProcessMemoryInfo();
+            const systemMem = os.freemem();
+            const totalMem = os.totalmem();
+            const freePercent = (systemMem / totalMem) * 100;
+            
+            // RSS (Resident Set Size) is the actual RAM used by the process
+            const rssMB = memoryInfo.residentSet / 1024 / 1024;
+            
+            let status = 'healthy';
+            if (freePercent < 15 || rssMB > 1500) {
+                status = 'congested';
+            } else if (freePercent < 30 || rssMB > 1000) {
+                status = 'warning';
+            }
+            
+            if (status !== 'healthy') {
+                console.log(`[RESOURCE MONITOR] Status: ${status} (Free RAM: ${freePercent.toFixed(1)}%, Process: ${rssMB.toFixed(0)}MB)`);
+                win.webContents.send('resource-update', {
+                    status,
+                    freePercent,
+                    rssMB,
+                    timestamp: Date.now()
+                });
+            }
+        } catch (e) {
+            console.error('Resource monitor error:', e);
+        }
+    }, 5000); // Check every 5 seconds
+}
+
 // Hardware Optimizations & Crash Prevention
 function applyHardwareOptimizations() {
     let vendor = 'GENERIC';
@@ -255,22 +294,50 @@ ipcMain.handle('auth-has-users', async () => {
     return { hasUsers: authManager.hasUsers() };
 });
 
-const historyFile = path.join(userDataPath, 'xkaliber_agent_session_v34.json');
-const legacyHistoryFile = path.join(userDataPath, 'xkaliber_agent_session_v33.json');
+const historyFile = path.join(userDataPath, 'xkaliber_agent_session_v37_9_1.json');
+const legacyFiles = [
+    'xkaliber_agent_session_v37_9.json',
+    'xkaliber_agent_session_v37.json',
+    'xkaliber_agent_session_v36.json',
+    'xkaliber_agent_session_v35.json',
+    'xkaliber_agent_session_v34.json',
+    'xkaliber_agent_session_v33.json',
+    'xkaliber_agent_session_v32.json',
+    'xkaliber_agent_session_v30.json',
+    'xkaliber_agent_session_v29.json',
+    'xkaliber_agent_session.json'
+];
 
 ipcMain.handle('load-history', async () => {
     try {
         if (fs.existsSync(historyFile)) {
             const data = await fsPromises.readFile(historyFile, 'utf-8');
             return JSON.parse(data);
-        } else if (fs.existsSync(legacyHistoryFile)) {
-            // Migrate from previous version
-            const data = await fsPromises.readFile(legacyHistoryFile, 'utf-8');
-            const history = JSON.parse(data);
-            // Save it to the new path immediately to complete migration
-            await fsPromises.writeFile(historyFile, JSON.stringify(history), 'utf-8');
-            console.log('Migrated legacy v33 history to v34.');
-            return history;
+        } else {
+            // Find the largest/most viable legacy history file to migrate
+            // since v34 may have been wiped by the Task Isolation bug
+            let bestLegacyFile = null;
+            let maxSize = 0;
+            
+            for (const lf of legacyFiles) {
+                const lfPath = path.join(userDataPath, lf);
+                if (fs.existsSync(lfPath)) {
+                    const stats = await fsPromises.stat(lfPath);
+                    // If it's over 1KB, it's likely a real history file, not a wiped one
+                    if (stats.size > maxSize && stats.size > 1024) {
+                        maxSize = stats.size;
+                        bestLegacyFile = lfPath;
+                    }
+                }
+            }
+
+            if (bestLegacyFile) {
+                console.log(`Migrating history from ${bestLegacyFile} to v37_9_1...`);
+                const data = await fsPromises.readFile(bestLegacyFile, 'utf-8');
+                const history = JSON.parse(data);
+                await fsPromises.writeFile(historyFile, JSON.stringify(history), 'utf-8');
+                return history;
+            }
         }
     } catch (e) {
         console.error('Failed to load history', e);
@@ -726,6 +793,7 @@ function createWindow() {
     });
 
     mainWindow.loadFile('index.html');
+    startResourceMonitor(mainWindow);
 }
 
 app.whenReady().then(() => {

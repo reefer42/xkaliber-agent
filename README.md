@@ -1,6 +1,51 @@
-# Xkaliber Agent v36 🚀
+# Xkaliber Agent v37.9.1 // Resource-Optimized Autonomous Assistant
 
-Xkaliber Agent is a modern, dark-themed autonomous agent desktop client built with Electron. It connects seamlessly to local **Ollama** and **LM Studio** neural models and equips them with system-level access, persistent vector memory, web scraping, and multimodal capabilities. 
+Xkaliber Agent is a modern, dark-themed autonomous agent desktop client built with Electron. It connects seamlessly to local **Ollama** and **LM Studio** neural models and equips them with system-level access, persistent vector memory, web scraping, and multimodal capabilities.
+
+### 🚀 NEW in v37.9.1: Critical Core & UI Hotfixes
+- **High-Contrast Chat Bubbles**: Eliminated visual halation (faint text) by redesigning chat bubbles to feature pure black text on light backgrounds, ensuring maximum readability without sacrificing the app's dark theme.
+- **History & Agent Logic Restoration**: Fixed the silent agent bug (where the agent ignored prompts due to payload cloning errors) and restored the automated legacy history migration script to safely recover previously wiped chat logs.
+
+### 🚀 NEW in v37.9.0: Enhanced UI Readability
+- **Visual Overhaul**: Boosted the contrast, brightness, and font weight of all text in the chat interface. Solved the issue where default text, labels, and system messages appeared faded or "greyed out" against the dark background.
+- *Note: Underlying application logic remains identical to v37.8.*
+
+### 🚀 NEW in v37.8: Responsive Offline Browsing
+Fixed an issue in the Offline Web Browser where AI-generated websites lacked mobile-responsiveness constraints, causing content and text to bleed off the right side of the screen. The shadow DOM now forcibly injects responsive baseline CSS (like `word-wrap: break-word` and `max-width: 100%`) into all generated pages to ensure they remain perfectly readable within the chat window.
+
+### 🚀 NEW in v37.7: Ollama Offline Browser Compatibility
+This update ensures full compatibility with the Offline Web Browser mode when using standard Ollama models. It fixes a bug where Ollama's stream payload variations (`json.response` vs `json.message.content` depending on the API endpoint used) resulted in a blank white Shadow DOM.
+
+### 🚀 NEW in v37.6: Offline Web Browser Mode
+A highly requested feature that allows the agent to act as an offline web server. By enabling the **OFFLINE BROWSER** toggle, the agent will stop responding in conversational markdown. Instead, it will dynamically generate a complete, beautifully themed, professional HTML5/CSS webpage to present the information you requested (e.g., generating a full Wiki-style article layout when you research a topic). The generated site is rendered directly in the chat via a secure Shadow DOM, providing a highly immersive browsing experience.
+
+### 🚀 NEW in v37.5: Task Isolation (Ultra-Aggressive Pruning)
+This version perfectly aligns with the goal of preventing resource exhaustion during massive coding tasks. When "Resource Saver" is enabled, the agent will now automatically and fully flush its internal chat memory every time you send a new request (keeping only your new instruction and the system prompt). This completely isolates the new task, guaranteeing that 100% of your chosen Context Size is dedicated solely to generating code and analyzing tool outputs, without any bloat from previous conversations.
+
+### 🚀 NEW in v37.4: Hallucination Loop Protection
+This update completely eliminates the "endless partial generation" bug caused when LM Studio reaches its maximum context limit mid-generation. The agent now actively monitors the stream's `finish_reason`—if it detects an early cutoff, it instantly halts the autonomous loop and warns the user, rather than endlessly nudging the model to fix broken JSON. Additionally, the Context Guard now uses deep-cache batch pruning to keep LM Studio's prompt evaluation speeds fast over long coding tasks.
+
+### 🚀 NEW in v37.3: LM Studio Context Guard
+This version fixes extreme task times in **LM Studio Mode** caused by context window thrashing. The agent now mathematically binds the chat history payload to 75% of your chosen Context Size slider setting, guaranteeing a 25% VRAM headroom for the model's actual response. This prevents LM Studio's internal "rolling window" policy from triggering mid-generation and destroying the prompt cache.
+
+### 🚀 NEW in v37.2: Active Generation Locks
+This version fixes mid-task timeouts by completely locking models in VRAM (`keep_alive: -1`) while the agent is executing a multi-turn autonomous loop. Once the task is fully complete, it applies the appropriate memory saver policy, preventing tools that take several minutes (like building or scraping) from causing the model to be prematurely flushed.
+
+### 🚀 NEW in v37.0: Heavy Context Processing
+This version resolves the "Model timed out" errors that occurred after VRAM purges by implementing a dynamic Time-To-First-Token (TTFT) handler, allowing large models up to 15 minutes to reload and parse heavy contexts without dropping the connection. It also includes new UI feedback for the warm-up phase.
+
+### 🚀 NEW in v36.4: Predictive Resource Guard
+This version introduces a multi-layered memory management system designed to prevent system RAM and VRAM congestion during heavy autonomous workloads (e.g., building applications, large-scale research).
+
+*   **Real-time Resource Monitoring**: The backend now continuously monitors system RAM and process memory, signaling the frontend to adapt before congestion hits.
+*   **Adaptive Sliding Window**: Automatically adjusts context length and truncation intensity based on hardware pressure.
+*   **Visual Health Status**: Monitor your system's "breathing room" directly from the UI.
+
+
+*   **Resource Saver Mode**: A new UI toggle that enables aggressive context pruning and message trimming.
+*   **Dynamic History Pruning**: Automatically drops intermediate conversation turns and trims massive tool outputs in older messages to keep the context window lean and prevents system RAM bloat.
+*   **Autonomous Memory Purge**: The agent can now call the `memory_purge` tool to request a resource cleanup when it detects resource congestion or before starting a massive generation task.
+*   **Optimized Keep-Alive**: Automatically reduces model retention time in VRAM when "Resource Saver" is active, ensuring your system stays responsive.
 
 ## 🌟 Key Features
 

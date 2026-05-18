@@ -423,12 +423,24 @@ const AGENT_TOOLS = [
             description: "Send a WhatsApp message.",
             parameters: { type: "object", properties: { number: { type: "string" }, message: { type: "string" } }, required: ["number", "message"] }
         }
+    },
+    {
+        type: "function",
+        function: {
+            name: "memory_purge",
+            description: "Request the system to immediately free up unused RAM/VRAM. Use this if you are performing a very large task (like building an entire app) and feel that system resources are becoming congested. This will prune older history and trigger garbage collection.",
+            parameters: { type: "object", properties: { reason: { type: "string", description: "The reason for the purge." } }, required: ["reason"] }
+        }
     }
 ];
 
 // --- Memory helpers ---
 async function pageOutModel(modelName) {
     if (!modelName || uplinkMode.checked) return;
+    if (isSending) {
+        console.warn(`[PAGING] Skipping page out for ${modelName} because a generation task is currently active.`);
+        return;
+    }
     console.log(`[PAGING] Paging out model: ${modelName} to free VRAM.`);
     try {
         const controller = new AbortController();
@@ -1005,11 +1017,120 @@ async function executeTool(name, args) {
         return "I searched the web but couldn't find any relevant results for that query.";
     }
     if (name === 'send_whatsapp_message') return (await window.api.invoke('whatsapp-send', { number: args.number, message: args.message })).success ? "Success" : "Error";
+    if (name === 'memory_purge') {
+        console.log(`Model requested memory purge. Reason: ${args.reason}`);
+        // Memory purge request handled contextually, no longer wipes UI history
+        const model = modelSelect.value;
+        if (model) await pageOutModel(model);
+        return "Success: Resource optimization triggered. Model paged out to refresh VRAM. Context will be strictly managed on next turn.";
+    }
     return `Unknown tool: ${name}`;
 }
 
 function stripMarkdown(text) {
     return text.replace(/[#*`_~\[\]()>]/g, '');
+}
+
+let currentResourceStatus = 'healthy';
+window.api.on('resource-update', (data) => {
+    currentResourceStatus = data.status;
+    const statusDot = document.getElementById('resource-status-dot');
+    if (statusDot) {
+        statusDot.className = `status-dot ${data.status}`;
+        statusDot.title = `Resource Status: ${data.status.toUpperCase()} (RAM: ${data.freePercent.toFixed(1)}% free, Proc: ${data.rssMB.toFixed(0)}MB)`;
+    }
+    
+    if (data.status === 'congested') {
+        console.warn(`[RESOURCE GUARD] High resource pressure detected. RSS: ${data.rssMB.toFixed(0)}MB. Triggering proactive cleanup on next payload generation.`);
+        // Removed global UI prune to protect user history
+    }
+});
+
+function pruneChatHistory(historyArray, forceAggressive = false) {
+    const memorySaverEnabled = document.getElementById('memory-saver-toggle')?.checked;
+    const isActuallyCongested = currentResourceStatus === 'congested';
+    
+    // Adaptive limits based on resource pressure
+    let MAX_LENGTH = 25;
+    let TRIM_THRESHOLD = 8000;
+
+    if (isActuallyCongested || forceAggressive) {
+        MAX_LENGTH = 10; // Extremely short history if congested
+        TRIM_THRESHOLD = 3000; // Aggressive truncation
+    } else if (currentResourceStatus === 'warning') {
+        MAX_LENGTH = 18;
+        TRIM_THRESHOLD = 5000;
+    }
+
+    // --- LM STUDIO STRICT CONTEXT ENFORCEMENT ---
+    const ctxLimitTokens = parseInt(document.getElementById('ctx-slider')?.value || "8192");
+    const allowedPromptTokens = Math.floor(ctxLimitTokens * 0.75); // Reserve 25% for generation
+    const MAX_ALLOWED_CHARS = allowedPromptTokens * 3.5; // Approx 3.5 chars per token
+    const needsStrictContextEnforcement = uplinkMode.checked || memorySaverEnabled || forceAggressive || isActuallyCongested;
+
+    console.log(`Resource Manager: Checking history (status: ${currentResourceStatus}, current: ${historyArray.length} messages)`);
+
+    // 1. Trim extremely large messages in history (except the very last few)
+    if (needsStrictContextEnforcement) {
+        historyArray.forEach((msg, idx) => {
+            // Always protect the system prompt (idx 0) and the very last turn (last 2 msgs)
+            if (idx !== 0 && idx < historyArray.length - 2) { 
+                if (msg.content && msg.content.length > TRIM_THRESHOLD) {
+                    console.log(`Resource Manager: Trimming large message at index ${idx} (${msg.content.length} chars)`);
+                    const keepSize = isActuallyCongested ? TRIM_THRESHOLD / 4 : TRIM_THRESHOLD / 2;
+                    msg.content = msg.content.substring(0, keepSize) + 
+                                  "\n\n... [TRUNCATED BY RESOURCE GUARD] ...\n\n" + 
+                                  msg.content.slice(- (keepSize / 2));
+                }
+            }
+        });
+    }
+
+    // 2. Reduce history size if it exceeds MAX_LENGTH
+    if (needsStrictContextEnforcement && historyArray.length > MAX_LENGTH) {
+        console.log(`Resource Manager: Pruning history from ${historyArray.length} to ${MAX_LENGTH} messages.`);
+        const systemPrompt = historyArray[0];
+        const recentMessages = historyArray.slice(- (MAX_LENGTH - 1));
+        historyArray = [systemPrompt, ...recentMessages];
+    }
+
+    // 3. Strict Payload Character Limit Enforcement (Prevents LM Studio Thrashing)
+    if (uplinkMode.checked) {
+        let currentChars = historyArray.reduce((acc, msg) => acc + (msg.content ? msg.content.length : 0), 0);
+        if (currentChars > MAX_ALLOWED_CHARS) {
+            console.warn(`[CONTEXT GUARD] Payload size (${currentChars} chars) exceeds optimal context window (${MAX_ALLOWED_CHARS} chars). Aggressively pruning older messages to prevent LM Studio thrashing...`);
+            
+            // Drop older intermediate messages until we fit
+            while (currentChars > MAX_ALLOWED_CHARS && historyArray.length > 3) {
+                // Remove the oldest message right after the system prompt
+                const removed = historyArray.splice(1, 1)[0];
+                currentChars -= (removed.content ? removed.content.length : 0);
+            }
+            
+            // If it's still too big (e.g. the final prompt itself is massive), forcefully truncate the last messages
+            if (currentChars > MAX_ALLOWED_CHARS) {
+                const targetChars = MAX_ALLOWED_CHARS * 0.5; // Cut it in half to give it plenty of room and keep cache stable for many turns
+                while (currentChars > targetChars && historyArray.length > 4) {
+                    // Remove the oldest message right after the system prompt
+                    const removed = historyArray.splice(1, 1)[0];
+                    currentChars -= (removed.content ? removed.content.length : 0);
+                }
+                
+                // If it is STILL over the limit (because of a single massive message)
+                for (let i = historyArray.length - 1; i > 0; i--) {
+                    if (currentChars <= MAX_ALLOWED_CHARS) break;
+                    if (historyArray[i].content && historyArray[i].content.length > 2000) {
+                        const overage = currentChars - MAX_ALLOWED_CHARS;
+                        const newLength = Math.max(1000, historyArray[i].content.length - overage);
+                        historyArray[i].content = historyArray[i].content.substring(0, newLength) + "\n...[TRUNCATED TO FIT CONTEXT]";
+                        currentChars = historyArray.reduce((acc, msg) => acc + (msg.content ? msg.content.length : 0), 0);
+                    }
+                }
+            }
+        }
+    }
+    
+    return historyArray;
 }
 
 // --- Main send logic (unified streaming) ---
@@ -1117,10 +1238,41 @@ My Query: ${text}`;
         } catch (e) { console.error('Netrunner search failed:', e); }
     }
 
+    // OFFLINE WEB BROWSER MODE (v37.6)
+    const isOfflineBrowserTurn = document.getElementById('offline-browser-toggle')?.checked;
+    if (isOfflineBrowserTurn) {
+        finalPrompt = `[OFFLINE WEB BROWSER MODE]
+The user is requesting to browse or search for: "${text}"
+
+Generate a complete, highly professional, and beautiful HTML5 webpage that fulfills this request. 
+
+CRITICAL RULES:
+1. Output ONLY raw HTML. No explanations, no markdown formatting, no \`\`\`html tags.
+2. Start your response directly with <!DOCTYPE html>.
+3. Include embedded CSS (<style>) to make the page visually stunning, modern, and perfectly responsive (use max-width: 100% and word-wrap: break-word).
+4. If it's an informational query, theme it like a high-quality Wiki or sleek modern article.
+5. Ensure you define a background color and text colors in your CSS (e.g., body { background: #ffffff; color: #333333; font-family: sans-serif; }).`;
+    }
+
     addMessage('user', text);
     chatHistory.push({ role: 'user', content: finalPrompt, ...(images.length > 0 ? { images } : {}) });
 
-    const botDiv = addMessage('bot', '<span class="loading-pulse">Thinking...</span>');
+    const botDiv = addMessage('bot', '');
+    if (isOfflineBrowserTurn) {
+        botDiv.style.maxWidth = '100%';
+        botDiv.style.width = '100%';
+        botDiv.style.padding = '0';
+        botDiv.style.overflowX = 'auto';
+        botDiv.style.overflowY = 'hidden';
+        botDiv.style.backgroundColor = '#ffffff'; // Fallback if model forgets CSS
+        botDiv.style.minHeight = '400px';
+        botDiv.style.borderRadius = '8px';
+        botDiv.style.border = '1px solid var(--border-color)';
+        const shadow = botDiv.attachShadow({mode: 'open'});
+        shadow.innerHTML = `<div style="padding: 20px; text-align: center; color: #666; font-family: sans-serif;">Connecting to Local Server...</div>`;
+    } else {
+        botDiv.innerHTML = '<span class="loading-pulse">Thinking...</span>';
+    }
 
     try {
         // SPEED OPTIMIZATION: Check if system prompt exists, otherwise create it with stronger memory directives
@@ -1161,6 +1313,25 @@ You have a tool called save_new_user_fact_only. You must be EXTREMELY SELECTIVE 
             chatHistory.unshift({ role: "system", content: systemPrompt });
         }
 
+        // --- BUG FIX FOR PAYLOAD CLONING ---
+        // Now that chatHistory has both the system prompt AND the new user prompt,
+        // we can safely clone it into payloadHistory so the AI actually sees the instruction.
+        let payloadHistory = JSON.parse(JSON.stringify(chatHistory));
+
+        // TASK ISOLATION (v37.5): To prevent context bloating and VRAM exhaustion during heavy coding tasks,
+        // we proactively flush all older chat history from the model's memory, keeping ONLY the system prompt and the current prompt.
+        const memorySaverEnabled = document.getElementById('memory-saver-toggle')?.checked;
+        if (memorySaverEnabled) {
+            console.log("[RESOURCE GUARD] Task Isolation triggered. Flushing previous conversational context from payload.");
+            if (payloadHistory && payloadHistory.length > 0 && payloadHistory[0].role === 'system') {
+                const sysPrompt = payloadHistory[0];
+                const lastUserPrompt = payloadHistory[payloadHistory.length - 1]; // The prompt we just added
+                payloadHistory = [sysPrompt, lastUserPrompt]; 
+            } else {
+                payloadHistory = [];
+            }
+        }
+
         console.log(`Connecting to Uplink at ${currentApiBase}...`);
         let finished = false;
         let turnCount = 0;
@@ -1169,6 +1340,10 @@ You have a tool called save_new_user_fact_only. You must be EXTREMELY SELECTIVE 
 
         while (!finished && turnCount < 20) {
             turnCount++;
+            
+            // RESOURCE OPTIMIZATION: Prune history if needed before each turn
+            payloadHistory = pruneChatHistory(payloadHistory);
+
             let body, endpoint;
             
             // Provide visual feedback for the current step
@@ -1190,8 +1365,8 @@ You have a tool called save_new_user_fact_only. You must be EXTREMELY SELECTIVE 
                 const messages = [];
                 const pendingToolCalls = []; 
 
-                for (let i = 0; i < chatHistory.length; i++) {
-                    const m = chatHistory[i];
+                for (let i = 0; i < payloadHistory.length; i++) {
+                    const m = payloadHistory[i];
                     if (!m.role) continue;
 
                     let msg = { role: m.role };
@@ -1253,7 +1428,8 @@ You have a tool called save_new_user_fact_only. You must be EXTREMELY SELECTIVE 
                     model,
                     messages,
                     stream: true,
-                    temperature: (tempSlider && !isNaN(parseFloat(tempSlider.value))) ? parseFloat(tempSlider.value) : 0.7
+                    temperature: (tempSlider && !isNaN(parseFloat(tempSlider.value))) ? parseFloat(tempSlider.value) : 0.7,
+                    max_tokens: -1
                 };
                 
                 // LM Studio strictly enforces tool payload schemas
@@ -1272,7 +1448,7 @@ You have a tool called save_new_user_fact_only. You must be EXTREMELY SELECTIVE 
                 endpoint = `${currentApiBase}/chat`;
                 
                 // Deep copy chatHistory to inject transient context
-                const messagesForOllama = chatHistory.map(m => {
+                const messagesForOllama = payloadHistory.map(m => {
                     let msg = { role: m.role, content: m.content || "" };
                     if (m.images) msg.images = m.images;
                     if (m.role === 'assistant' && m.tool_calls) {
@@ -1293,11 +1469,15 @@ You have a tool called save_new_user_fact_only. You must be EXTREMELY SELECTIVE 
                     }
                 }
 
+                const memorySaverEnabled = document.getElementById('memory-saver-toggle')?.checked;
+                // Protect the model in VRAM during active generation to prevent it from being flushed
+                // if a tool execution (like compiling) takes longer than the keep_alive timeout.
                 body = {
                     model,
                     messages: messagesForOllama,
                     stream: true,
-                    options: { temperature: parseFloat(tempSlider.value), num_ctx: parseInt(ctxSlider.value) }
+                    options: { temperature: parseFloat(tempSlider.value), num_ctx: parseInt(ctxSlider.value) },
+                    keep_alive: -1 // Keep locked in VRAM while the task is ongoing
                 };
                 if (activeTools.length > 0) body.tools = activeTools;
             }
@@ -1349,8 +1529,20 @@ You have a tool called save_new_user_fact_only. You must be EXTREMELY SELECTIVE 
             };
 
             let leftover = '';
+            let isFirstChunk = true;
+            let finishReason = null;
             while (true) {
-                const { done, value } = await readWithTimeout(reader, 300000); // 5 minute chunk timeout
+                // Increase timeout significantly for the first chunk to allow for model reloading/context processing after a VRAM flush.
+                // 15 minutes for the first chunk, 5 minutes for subsequent chunks.
+                const currentTimeoutMs = isFirstChunk ? 900000 : 300000; 
+                
+                if (isFirstChunk) {
+                    botDiv.innerHTML = `<span class="loading-pulse" style="color: var(--warning-color)">Warming up model and processing context... (This may take a moment after a resource flush)</span><br><br>${existingText}`;
+                }
+
+                const { done, value } = await readWithTimeout(reader, currentTimeoutMs);
+                isFirstChunk = false;
+                
                 if (done) break;
                 
                 const chunk = decoder.decode(value);
@@ -1369,9 +1561,16 @@ You have a tool called save_new_user_fact_only. You must be EXTREMELY SELECTIVE 
                                 const jsonStr = trimmed.startsWith('data: ') ? trimmed.slice(6) : trimmed.slice(5);
                                 const json = JSON.parse(jsonStr);
                                 const delta = json.choices?.[0]?.delta;
+                                if (json.choices?.[0]?.finish_reason) finishReason = json.choices[0].finish_reason;
                                 if (delta?.content) {
                                     fullContent += delta.content;
-                                    botDiv.innerHTML = `<span class="loading-pulse">Thinking (Step ${turnCount}/20)...</span><br><br>${existingText ? existingText + '<br><br>' : ''}${window.markedParse(fullContent)}`;
+                                    if (isOfflineBrowserTurn) {
+                                        let cleanHtml = fullContent.replace(/^```html\n?/i, '').replace(/\n?```$/i, '');
+                                        const baseWebStyles = `<style>:host { display: block; max-width: 100%; overflow-x: auto; } body { word-wrap: break-word; overflow-wrap: break-word; max-width: 100%; box-sizing: border-box; } *, *::before, *::after { box-sizing: border-box; max-width: 100%; } img, video, iframe, canvas { max-width: 100%; height: auto; } pre, code, table { max-width: 100%; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word; }</style>`;
+                                        botDiv.shadowRoot.innerHTML = baseWebStyles + cleanHtml;
+                                    } else {
+                                        botDiv.innerHTML = `<span class="loading-pulse">Thinking (Step ${turnCount}/20)...</span><br><br>${existingText ? existingText + '<br><br>' : ''}${window.markedParse(fullContent)}`;
+                                    }
                                 }
                                 if (delta?.tool_calls) {
                                     if (!toolCalls) toolCalls = [];
@@ -1400,9 +1599,25 @@ You have a tool called save_new_user_fact_only. You must be EXTREMELY SELECTIVE 
                         // Ollama Format
                         try {
                             const json = JSON.parse(trimmed);
-                            if (json.message?.content) {
-                                fullContent += json.message.content;
-                                botDiv.innerHTML = `<span class="loading-pulse">Thinking (Step ${turnCount}/20)...</span><br><br>${existingText ? existingText + '<br><br>' : ''}${window.markedParse(fullContent)}`;
+                            if (json.done_reason) finishReason = json.done_reason;
+                            
+                            // Support both /api/chat and /api/generate formats
+                            let contentDelta = "";
+                            if (json.message && typeof json.message.content === 'string') {
+                                contentDelta = json.message.content;
+                            } else if (typeof json.response === 'string') {
+                                contentDelta = json.response;
+                            }
+
+                            if (contentDelta) {
+                                fullContent += contentDelta;
+                                if (isOfflineBrowserTurn) {
+                                    let cleanHtml = fullContent.replace(/^```html\n?/i, '').replace(/\n?```$/i, '');
+                                    const baseWebStyles = `<style>:host { display: block; max-width: 100%; overflow-x: auto; } body { word-wrap: break-word; overflow-wrap: break-word; max-width: 100%; box-sizing: border-box; } *, *::before, *::after { box-sizing: border-box; max-width: 100%; } img, video, iframe, canvas { max-width: 100%; height: auto; } pre, code, table { max-width: 100%; overflow-x: auto; white-space: pre-wrap; word-wrap: break-word; }</style>`;
+                                    botDiv.shadowRoot.innerHTML = baseWebStyles + cleanHtml;
+                                } else {
+                                    botDiv.innerHTML = `<span class="loading-pulse">Thinking (Step ${turnCount}/20)...</span><br><br>${existingText ? existingText + '<br><br>' : ''}${window.markedParse(fullContent)}`;
+                                }
                             }
                             if (json.message?.tool_calls?.length > 0) {
                                 toolCalls = json.message.tool_calls.map(tc => {
@@ -1414,6 +1629,14 @@ You have a tool called save_new_user_fact_only. You must be EXTREMELY SELECTIVE 
                     }
                 }
                 messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }
+
+            if (finishReason === 'length') {
+                console.warn("[GUARD RAIL] Generation cut off due to context limits.");
+                botDiv.innerHTML += `<br><br><span style="color:var(--danger-color); padding: 5px; border: 1px dashed var(--danger-color); border-radius: 4px; display: inline-block; margin-top: 10px; font-size: 0.85rem;"><strong>⚠️ RESOURCE GUARD:</strong> The model hit its maximum context limit and was cut off mid-thought. The autonomous loop has been paused to prevent a hallucination loop. Please clear your chat history or increase your Context Size slider.</span>`;
+                chatHistory.push({ role: 'assistant', content: fullContent + "\n\n[SYSTEM: GENERATION CUT OFF MID-THOUGHT DUE TO CONTEXT LIMITS]" });
+                payloadHistory.push({ role: 'assistant', content: fullContent + "\n\n[SYSTEM: GENERATION CUT OFF MID-THOUGHT DUE TO CONTEXT LIMITS]" });
+                break; // Break the 20-turn autonomous loop
             }
 
             if (toolCalls?.length > 0) {
@@ -1454,7 +1677,9 @@ You have a tool called save_new_user_fact_only. You must be EXTREMELY SELECTIVE 
                 if (hallucinations.length > 0) {
                     console.log("Blocking suspected hallucination and asking for clarification...");
                     chatHistory.push({ role: 'assistant', content: fullContent || "I attempted to perform a task but got confused." });
+                    payloadHistory.push({ role: 'assistant', content: fullContent || "I attempted to perform a task but got confused." });
                     chatHistory.push({ role: 'user', content: `[GUARD RAIL]: I noticed you tried to use tools that don't exist or provided invalid parameters: ${hallucinations.join(', ')}. If you are unsure of how to proceed, please ask me for clarification instead of guessing.` });
+                    payloadHistory.push({ role: 'user', content: `[GUARD RAIL]: I noticed you tried to use tools that don't exist or provided invalid parameters: ${hallucinations.join(', ')}. If you are unsure of how to proceed, please ask me for clarification instead of guessing.` });
                     botDiv.innerHTML = window.markedParse(fullContent + "\n\n*(Neural-Core intercepted a suspected hallucination. Nudging model for clarification...)*");
                     continue; 
                 }
@@ -1464,11 +1689,13 @@ You have a tool called save_new_user_fact_only. You must be EXTREMELY SELECTIVE 
                 if (window._lastToolCallSignature === currentSig && turnCount > 1) {
                     console.warn("Tool loop detected! Model generated exact same tool call. Nudging.");
                     chatHistory.push({ role: 'user', content: "You just requested the exact same tool call again. Please use the results already provided above to answer the user's question directly." });
+                    payloadHistory.push({ role: 'user', content: "You just requested the exact same tool call again. Please use the results already provided above to answer the user's question directly." });
                     continue; 
                 }
                 window._lastToolCallSignature = currentSig;
 
                 chatHistory.push({ role: 'assistant', content: fullContent, tool_calls: validToolCalls });
+                payloadHistory.push({ role: 'assistant', content: fullContent, tool_calls: validToolCalls });
 
                 // OPTIMIZATION: Memory tools (mem_store, memory_search) now run on CPU in v31.3.
                 // We no longer need to page out the main model here, saving significant time.
@@ -1489,8 +1716,13 @@ You have a tool called save_new_user_fact_only. You must be EXTREMELY SELECTIVE 
                         trace.addStep('tools.execute', 'tools', 'error', 'TOOL_ERR', Date.now() - startTool, e.message, t.function.name);
                     }
                     chatHistory.push({ role: 'tool', content: String(result), tool_call_id: t.id });
+                    payloadHistory.push({ role: 'tool', content: String(result), tool_call_id: t.id });
                 }
-                botDiv.innerHTML = `<span class="loading-pulse">Step ${turnCount} complete. Thinking...</span><br><br>${existingText ? existingText + '<br><br>' : ''}${window.markedParse(fullContent)}`;
+                if (isOfflineBrowserTurn) {
+                     botDiv.shadowRoot.innerHTML = `<div style="padding: 20px; text-align: center; color: #666; font-family: sans-serif;">Applying tool results (Step ${turnCount})...</div>`;
+                } else {
+                     botDiv.innerHTML = `<span class="loading-pulse">Step ${turnCount} complete. Thinking...</span><br><br>${existingText ? existingText + '<br><br>' : ''}${window.markedParse(fullContent)}`;
+                }
                 await new Promise(r => setTimeout(r, 1500)); // Increased VRAM relief delay
             } else {
                 window._lastToolCallSignature = null; // Clear on success
@@ -1498,10 +1730,12 @@ You have a tool called save_new_user_fact_only. You must be EXTREMELY SELECTIVE 
                 if (turnCount > 1 && (!fullContent || fullContent.trim().length < 2)) {
                     console.log("Neural link active but model is silent after tool results. Nudging for final response...");
                     chatHistory.push({ role: 'user', content: "Please summarize the results above and provide the final answer." });
+                    payloadHistory.push({ role: 'user', content: "Please summarize the results above and provide the final answer." });
                     continue; 
                 }
 
                 chatHistory.push({ role: 'assistant', content: fullContent });
+                payloadHistory.push({ role: 'assistant', content: fullContent });
                 window.api.invoke('save-history', chatHistory);
                 
                 botDiv.innerHTML = `${existingText ? existingText + '<br><br>' : ''}${window.markedParse(fullContent)}`;
@@ -1548,10 +1782,25 @@ You have a tool called save_new_user_fact_only. You must be EXTREMELY SELECTIVE 
         generateReport(trace, explanation, text, "");
         
     } finally {
+        isSending = false; // Release the VRAM paging lock
+        
+        // Now that the task is fully finished, apply the requested memory saving policy
+        const memorySaverEnabled = document.getElementById('memory-saver-toggle')?.checked;
+        if (memorySaverEnabled && !uplinkMode.checked) {
+            const currentModel = modelSelect.value;
+            if (currentModel) {
+                // Background fetch to reset keep_alive to 1m
+                fetch(`${OLLAMA_API}/chat`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ model: currentModel, messages: [], keep_alive: "1m" })
+                }).catch(() => {});
+            }
+        }
+        
         sendBtn.style.display = 'block';
         stopBtn.style.display = 'none';
         abortController = null;
-        isSending = false;
         userInput.disabled = false;
         sendBtn.disabled = false;
         // Focus back to input on desktop

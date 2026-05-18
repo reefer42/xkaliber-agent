@@ -1,4 +1,98 @@
-# Xkaliber Agent v36 Changelog
+# Xkaliber Agent v37 Changelog
+
+## [37.9.1] - 2026-05-16
+
+### Fixed
+- **Silent Agent Bug**: Fixed a payload cloning logic error where the agent would only receive the system prompt and ignore user instructions when "Resource Saver" was enabled.
+- **Missing Chat History**: Resolved the critical bug where Task Isolation was overwriting and wiping the UI chat history from disk. Legacy history files (v33, v34, etc.) now automatically migrate and restore upon startup.
+
+### Changed
+- **High-Contrast Chat Bubbles**: Redesigned the chat message bubbles to use a classic Light Mode aesthetic (pure black text on light grey bubbles) while maintaining the app's overall dark theme. This permanently eliminates the visual blooming/halation effect that made light text on dark backgrounds look faint.
+
+## [37.9.0] - 2026-05-16
+
+### Fixed
+- **UI Readability**: Significantly increased the brightness of the default text, labels, and system messages (changed from faded grey to pure white and light grey) and increased font weight to `500` to prevent text from looking faded or hard to read against the dark theme.
+
+## [37.8.0] - 2026-05-15
+
+### Fixed
+- **Offline Browser Responsiveness**: Resolved a visual bug where AI-generated websites lacked layout boundaries, causing text and tables to overflow horizontally off the screen.
+  - *Details*: The renderer now automatically prepends a robust baseline CSS wrapper to the Shadow DOM. This enforces `box-sizing: border-box`, `word-wrap: break-word`, and `max-width: 100%` on all generated elements, ensuring perfect readability regardless of how the AI writes its internal CSS. Also added horizontal scroll fallback for unbreakable `<pre>` code blocks.
+
+## [37.7.0] - 2026-05-15
+
+### Fixed
+- **Ollama Offline Browser Rendering**: Fixed a bug where enabling Offline Web Browser mode while connected to Ollama resulted in a blank white chat bubble.
+  - *Details*: The stream parser now dynamically checks for both `json.message.content` (used by Ollama's `/api/chat` endpoint) and `json.response` (used by Ollama's `/api/generate` endpoint) when piping HTML directly into the Shadow DOM.
+
+## [37.6.0] - 2026-05-15
+
+### Added
+- **Offline Web Browser Mode**: Introduced a new toggle that transforms the chat UI into an offline browser. 
+  - When enabled, the agent no longer responds in natural language. Instead, it generates a complete, beautifully styled HTML5 webpage (mimicking a Wikipedia article, tech blog, or application interface) based on your query.
+  - The generated webpage is securely rendered directly inside the chat using an isolated Shadow DOM, preventing CSS conflicts with the main application UI while allowing a rich, native browsing experience.
+
+## [37.5.0] - 2026-05-15
+
+### Added
+- **Task Isolation Mode (Ultra-Aggressive Pruning)**: Implemented a strict memory management policy. When "Resource Saver" is enabled, sending a new message will now completely flush all previous conversational history from the model's memory (while retaining the system prompt). 
+  - *Why*: This ensures that 100% of your Context Window and VRAM are dedicated *exclusively* to the current coding task and its associated tool outputs, preventing massive context bloat from breaking LM Studio.
+- **UI Consistency Fix**: Fixed a visual bug where the application title bar incorrectly displayed `v36.4` instead of the current version.
+
+## [37.4.0] - 2026-05-15
+
+### Fixed
+- **Hallucination Loop / Context Cutoff Trap**: Fixed a critical bug where hitting the context limit in LM Studio would trigger an endless cycle of partial generations.
+  - Previously, if the context window was filled while the agent was writing code, LM Studio would stop mid-tool-call. The broken JSON triggered the agent's "Hallucination Guard Rail", which nudged the model to try again with the same broken context, leading to infinite reprocessing.
+  - **Context Cutoff Detector**: The stream parser now intercepts `finish_reason: length`. If the model is cut off due to context bounds, the autonomous loop instantly pauses and provides a clear red warning to the user, completely preventing the endless retries.
+  - **Deep-Cache Pruning**: When the chat history breaches optimal limits, the Context Guard now prunes 50% of the older messages in a single batch, rather than 1 message per turn. This drastically reduces the number of times the LM Studio Prompt Cache is invalidated during long tasks.
+  - Added explicit `max_tokens: -1` to the LM Studio payload to prevent artificial early cutoffs.
+
+## [37.3.0] - 2026-05-15
+
+### Fixed
+- **LM Studio Context Thrashing**: Fixed a critical issue where the agent's autonomous task payload would grow beyond LM Studio's configured context window, triggering LM Studio's internal "rolling window" policy. This caused the prompt cache to invalidate mid-generation, resulting in endless "Processing Prompt..." delays and extreme task times.
+  - **Context Window Guard**: The agent now mathematically binds the chat history payload to 75% of the Context Size slider setting when using LM Studio mode. This guarantees a 25% VRAM headroom for the model's actual response, fully bypassing the internal rolling window thrashing effect.
+
+## [37.2.0] - 2026-05-15
+
+### Fixed
+- **Mid-Generation VRAM Flushes**: Resolved the persistent "Model timed out" error caused by Ollama silently paging out the model *during* active multi-turn tasks. 
+  - **Generation Lock**: Implemented a `keep_alive: -1` lock during the active 20-turn task loop. This prevents long-running tool executions (like compiling code) from triggering Ollama's auto-unload timeout.
+  - **Post-Task Cleanup**: Re-architected `pageOutModel` and the cleanup routines. The system now safely respects the "Resource Saver" 1-minute timeout *only* after the full autonomous task has completely finished.
+
+## [37.0.0] - 2026-05-15
+
+### Fixed
+- **Model Timeout on Reload**: Resolved the persistent "Model timed out" error that occurred after a successful VRAM flush. 
+  - **Dynamic Timeout**: Increased the "Time-To-First-Token" (TTFT) timeout threshold to 15 minutes to allow large models sufficient time to reload into VRAM and process heavy context windows.
+  - **Status Indicator**: Added a specific "Warming up model and processing context..." UI indicator so users know the agent is actively working and hasn't frozen.
+
+## [36.4.0] - 2026-05-15
+
+### Added
+- **Predictive Resource Guard**: Real-time system monitoring that detects RAM and VRAM congestion before it causes a crash.
+- **Adaptive Context Sliding Window**: Automatically shrinks the conversation history and increases truncation intensity when high resource pressure is detected.
+- **Visual Resource Gauge**: Added a real-time status indicator (dot) in the header to monitor system health.
+- **Aggressive Garbage Collection**: Proactive memory cleanup triggered by the backend during intensive autonomous tasks.
+
+### Fixed
+- **Large-Scale Generation Hangs**: Resolved "Stream timeout" errors during multi-turn coding tasks by aggressively managing context between turns.
+- **VRAM Congestion Recovery**: Improved the 5-minute timeout handler to provide clearer feedback and better recovery options.
+
+## [36.3.0] - 2026-05-14
+
+### Added
+- **Intelligent Resource Manager**: Introduced a multi-layered memory management system to prevent system RAM and VRAM congestion during complex autonomous tasks.
+- **Dynamic Context Pruning**: Automatically trims extremely large messages and prunes intermediate conversation history when "Resource Saver" mode is enabled.
+- **Memory Purge Tool**: Equipped the agent with the `memory_purge` capability, allowing it to autonomously request a resource cleanup when performing intensive operations (e.g., app generation).
+- **Resource Saver Toggle**: Added a dedicated UI toggle to enable/disable aggressive memory optimizations.
+- **Ollama Keep-Alive Optimization**: Automatically adjusts model `keep_alive` duration based on Resource Saver status to free VRAM faster.
+
+### Fixed
+- **System RAM Congestion**: Resolved issues where long-running autonomous tasks would max out system RAM by bloating the chat history.
+- **VRAM Exhaustion Deadlocks**: Improved model paging and relief delays to prevent application hangs on hardware with limited VRAM.
 
 ## [36.2.0] - 2026-05-13
 

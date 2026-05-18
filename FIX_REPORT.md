@@ -13,10 +13,15 @@ The TTS feature had several issues causing "JavaScript error occurred in main pr
 - **Threading:** Automatically calculates optimal `OMP_NUM_THREADS` for AMD physical cores.
 - **GPU Optimization:** Detects AMD GPUs and applies `HSA_OVERRIDE_GFX_VERSION=11.0.0` for newer architectures.
 
+## 3. Memory & Resource Management (v36.3)
+Addressed critical resource congestion issues during long autonomous tasks.
+- **Dynamic Context Pruning:** Implemented logic to automatically trim extremely large messages and prune intermediate conversation history when "Resource Saver" mode is enabled.
+- **Memory Purge Tool:** Added the `memory_purge` capability, allowing the agent to request context cleanup and model paging-out to refresh VRAM.
+- **Ollama Keep-Alive Control:** Reduced model retention time in VRAM from 5m to 1m when Resource Saver is active.
+- **CLI Pruning:** Added history pruning to the CLI (`index.js`) to prevent RAM bloat during multi-turn sessions.
+
 ## Verification
-1. Launch the app using `npm start`.
-2. Check the terminal output for:
-   - `Hardware: AMD CPU Detected. Applying performance tweaks...`
-   - `Hardware: AMD GPU Detected ...`
-   - `Hardware: Applying HSA_OVERRIDE_GFX_VERSION=11.0.0 ...`
-3. Test TTS by toggling the audio switch and sending a message.
+1. Launch the app and enable **RESOURCE SAVER** in the sidebar.
+2. Engage in a long conversation or task (e.g., "Build me a web app").
+3. Monitor the console (DevTools) for `Resource Manager: Pruning history` logs.
+4. Verify the agent can call `memory_purge` when context gets heavy.

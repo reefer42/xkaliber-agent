@@ -3,20 +3,36 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Xkaliber Agent v36.2 // Autonomous Workflow</title>
+    <title>Xkaliber Agent v37.9 // Autonomous Workflow</title>
     <style>
         :root {
             --bg-color: #0d1117;
             --sidebar-bg: #161b22;
             --input-bg: #0d1117;
-            --text-color: #c9d1d9;
+            --text-color: #c9d1d9; /* Softer gray (v37.8 standard) to prevent contrast blooming */
             --accent-color: #00ff41; /* Hacker green */
             --accent-dim: #008f11;
             --border-color: #30363d;
             --code-bg: #21262d;
             --user-msg-bg: #1f6feb;
             --bot-msg-bg: #161b22;
+            --warning-color: #f1e05a;
+            --danger-color: #ff4444;
         }
+
+        /* Resource Status Dot */
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 5px;
+            background-color: var(--accent-color);
+            box-shadow: 0 0 5px var(--accent-color);
+            transition: all 0.3s ease;
+        }
+        .status-dot.warning { background-color: var(--warning-color); box-shadow: 0 0 5px var(--warning-color); }
+        .status-dot.congested { background-color: var(--danger-color); box-shadow: 0 0 5px var(--danger-color); }
 
         /* VRAM Bar Styles */
         .vram-bar-container {
@@ -41,6 +57,7 @@
             background-color: var(--bg-color);
             color: var(--text-color);
             font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+            font-weight: 400; /* Reverted to standard to prevent blooming */
             margin: 0;
             display: flex;
             height: 100vh;
@@ -392,16 +409,28 @@
             position: relative;
             animation: fadeIn 0.3s ease;
             box-sizing: border-box;
+            /* Text color handled by specific bubble classes for high contrast */
+        }
+
+        .message p {
+            color: #000000 !important;
+            margin: 0.5em 0;
+            font-weight: 500;
         }
 
         .system-message {
             align-self: center;
-            background-color: rgba(110, 118, 129, 0.1);
-            border: 1px dashed var(--border-color);
+            background-color: #fffbdd; /* Light yellow for visibility */
+            border: 1px dashed #d4c447;
             font-size: 0.85rem;
-            color: #8b949e;
+            color: #000000 !important;
             max-width: 95%;
             width: fit-content;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        .system-message p {
+            color: #000000 !important;
         }
 
         @keyframes fadeIn {
@@ -411,23 +440,25 @@
 
         .user-message {
             align-self: flex-end;
-            background-color: var(--border-color);
-            color: var(--text-color);
-            border-left: 3px solid var(--accent-color);
-            flex-shrink: 0; /* Don't squash message */
+            background-color: #e5e7eb; /* Light grey bubble */
+            color: #000000 !important; /* Pure black text */
+            border-left: 3px solid var(--accent-dim);
+            flex-shrink: 0;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
         }
 
         .bot-message {
             align-self: flex-start;
-            background-color: transparent;
-            color: var(--text-color);
-            border: 1px solid var(--border-color);
-            flex-shrink: 0; /* Don't squash message */
+            background-color: #f3f4f6; /* Lighter grey bubble */
+            color: #000000 !important; /* Pure black text */
+            border: 1px solid #d1d5db;
+            flex-shrink: 0;
             min-width: 50px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
         }
 
         .bot-message strong {
-            color: var(--accent-color);
+            color: #006611; /* Darker green for contrast on light background */
         }
 
         .loading-pulse {
@@ -572,13 +603,15 @@
 
         .message code {
             font-family: 'Courier New', Courier, monospace;
-            background-color: rgba(110, 118, 129, 0.4);
+            background-color: rgba(0, 0, 0, 0.08); /* Darkened slightly for light backgrounds */
+            color: #d63384; /* Pinkish-red for inline code on light backgrounds */
             padding: 0.2em 0.4em;
             border-radius: 3px;
         }
         
         .message pre code {
             background-color: transparent;
+            color: #c9d1d9 !important; /* Keep code block text light */
             padding: 0;
         }
 
@@ -647,9 +680,21 @@
 </head>
 <body>
     <div id="sidebar">
-        <h1>XKALIBER AGENT <span style="font-size: 0.7rem; color: var(--accent-dim);">v36.2</span></h1>
+        <h1><span id="resource-status-dot" class="status-dot" title="Resource Status: Healthy"></span>XKALIBER AGENT <span style="font-size: 0.7rem; color: var(--accent-dim);">v37.9</span></h1>
         
         <div class="control-group" style="margin-bottom: 10px;">
+            <div class="toggle-row">
+                <label class="toggle-label" for="memory-saver-toggle" style="color: #ff9e00; text-shadow: 0 0 5px rgba(255, 158, 0, 0.3);">
+                    <input type="checkbox" id="memory-saver-toggle" checked>
+                    RESOURCE SAVER
+                </label>
+            </div>
+            <div class="toggle-row">
+                <label class="toggle-label" for="offline-browser-toggle" style="color: #00e5ff; text-shadow: 0 0 5px rgba(0, 229, 255, 0.3);">
+                    <input type="checkbox" id="offline-browser-toggle">
+                    OFFLINE BROWSER
+                </label>
+            </div>
             <div class="toggle-row">
                 <label class="toggle-label" for="uplink-mode">
                     <input type="checkbox" id="uplink-mode">

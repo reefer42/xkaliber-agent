@@ -41,7 +41,7 @@ const SEND_CHANNELS = ['tts-speak', 'tts-stop'];
 
 const RECEIVE_CHANNELS = [
     'whatsapp-qr', 'whatsapp-ready', 'whatsapp-error', 'whatsapp-disconnected',
-    'tts-error', 'tts-finished'
+    'tts-error', 'tts-finished', 'resource-update'
 ];
 
 contextBridge.exposeInMainWorld('api', {

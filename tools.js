@@ -71,6 +71,14 @@ const AGENT_TOOLS = [
             description: "Search long-term vector memory to recall past learned knowledge, user preferences, or facts. USE THIS TOOL actively if you are asked a question about the user or past context that you do not know the answer to. Formulate a targeted search query.",
             parameters: { type: "object", properties: { query: { type: "string", description: "The specific topic or keywords to search for in memory." } }, required: ["query"] }
         }
+    },
+    {
+        type: "function",
+        function: {
+            name: "memory_purge",
+            description: "Request the system to immediately free up unused RAM/VRAM. Use this if you are performing a very large task and feel that system resources are becoming congested. This will prune older history and refresh the model's memory state.",
+            parameters: { type: "object", properties: { reason: { type: "string", description: "The reason for the purge." } }, required: ["reason"] }
+        }
     }
 ];
 
@@ -185,6 +193,9 @@ async function executeTool(name, args) {
     if (name === 'memory_search') {
         const mems = await memoryManager.queryVectors(args.query);
         return mems.length > 0 ? mems.map(m => m.text).join('\n') : "No memory found";
+    }
+    if (name === 'memory_purge') {
+        return "Resource optimization triggered. System is freeing up RAM/VRAM.";
     }
     return `Unknown tool: ${name}`;
 }
